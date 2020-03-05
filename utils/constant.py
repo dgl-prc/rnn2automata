@@ -1,8 +1,8 @@
 import os
 
 PROJECT_ROOT = "/home/dgl/project/learn_automata_rnn"
+SENTENCE_ENCODER = "/home/dgl/project/Adversarial-Sampling-for-Repair/text_attack/textbugger/universal-sentence-encoder"
 WORD2VEC_PATH = "data/wordvec/GoogleNews-vectors-negative300.bin"
-
 START_SYMBOL = 'S'
 
 
@@ -61,3 +61,8 @@ class AbstractData:
 
     class Level2:
         pass
+
+class Application:
+    class AEs:
+        class MR:
+            LSTM = "data/application/aes/mr/lstm.pkl"

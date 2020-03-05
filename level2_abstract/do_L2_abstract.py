@@ -6,7 +6,7 @@ from level2_abstract.read_seq import *
 from utils.constant import *
 
 def do_L2_abs():
-    k = 18
+    k = int(sys.argv[1])
     total_symbols = 500000
     data_path = get_path(os.path.join(AbstractData.Level1.LSTM.MR,"k={}".format(k),"train.txt"))
     sequence, alphabet = load_data(data_path, total_symbols)

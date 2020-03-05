@@ -312,15 +312,3 @@ class MGU(MyModule):
     def get_predict_trace(self, input_sequences):
         pass
 
-
-def init_model(params):
-    if params["rnn_type"] == ModelType.GRU:
-        model = GRU(input_size=params["input_size"], num_class=params["output_size"], hidden_size=params["hidden_size"],
-                    num_layers=params["num_layers"])
-    elif params["rnn_type"] == ModelType.LSTM:
-        model = LSTM(input_size=params["input_size"], num_class=params["output_size"],
-                     hidden_size=params["hidden_size"],
-                     num_layers=params["num_layers"])
-    else:
-        raise Exception("Unknow rnn type:{}".format(params["rnn_type"]))
-    return model

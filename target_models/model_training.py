@@ -6,25 +6,10 @@ import torch.optim as optim
 from sklearn.utils import shuffle
 from target_models.gated_rnn import *
 from target_models import train_args
+from target_models.model_helper import sent2tensor,init_model
 from utils.constant import *
 from utils.time_util import *
 from utils.help_func import load_pickle, save_model, save_readme
-
-
-def sent2tensor(sent, device, WORD2IDX, INPUT_SIZE, WV_MATRIX):
-    idx_seq = []
-    for w in sent:
-        if w in WORD2IDX:
-            idx = WORD2IDX[w]
-        elif w.lower() in WORD2IDX:
-            idx = WORD2IDX[w.lower()]
-        else:
-            idx = WV_MATRIX.shape[0] - 1
-        idx_seq.append(idx)
-    seq = torch.zeros(1, len(idx_seq), INPUT_SIZE).to(device)
-    for i, w_idx in enumerate(idx_seq):
-        seq[0][i] = torch.tensor(WV_MATRIX[w_idx])
-    return seq
 
 
 def test(data, model, params, mode="test", device="cuda:0"):
