@@ -18,20 +18,14 @@ class Classifier(object):
         :param sent:
         :return:
         '''
-        if isinstance(sent, list):
-            sent = " ".join(sent)
-        tensor_sequence = sent2tensor(sent, 300, self.word2idx, self.input_dim, self.wv_matrix)
+        tensor_sequence = sent2tensor(sent, self.input_dim, self.word2idx, self.wv_matrix, self.device)
         if tensor_sequence.shape[1] == 0:
             raise BadInput("empty input")
         tensor_sequence = tensor_sequence.to(self.device)
         output, inter_state = self.rnn(tensor_sequence)
-        # inter_state is (hn,cn) for LSTM and hn for GRU
-        if self.rnn_type == ModelType.LSTM:
-            last_hn = inter_state[0][-1]
-        else:
-            last_hn = inter_state[-1]
-        probs = self.rnn.output_pr_dstr(last_hn).cpu().detach().squeeze().numpy()
+        probs = self.rnn.output_pr_dstr(output[0][-1].unsqueeze(0)).cpu().detach().squeeze().numpy()
         return probs
+
 
     def get_label(self, sent):
         '''
