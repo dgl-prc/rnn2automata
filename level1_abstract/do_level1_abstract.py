@@ -20,9 +20,6 @@ def do_L1_abstract_on_new_trace(rnn_traces,rnn_pre):
     abs_seqs = level1_abstract(rnn_traces=rnn_traces, y_pre=rnn_pre, kmeans=kmeans, kmeans_exists=True)
     print(abs_seqs)
 
-
-
-
 if __name__ == '__main__':
     # for k in range(2, 22, 2):
     #     print("=======k={}======".format(k))
