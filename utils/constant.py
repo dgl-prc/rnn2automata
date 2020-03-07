@@ -56,7 +56,6 @@ class OriTrace:
 class AbstractData:
     class Level1:
         class LSTM:
-            IMDB = "data/level1_abs_trace/lstm/"
             MR = "data/level1_abs_trace/lstm/"
 
     class Level2:
