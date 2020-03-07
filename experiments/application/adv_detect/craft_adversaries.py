@@ -1,11 +1,11 @@
 import sys
 
-sys.path.append("../../")
+sys.path.append("../../../")
+import random
 import gensim
 from target_models.model_helper import load_model
 from target_models.classifier_adapter import Classifier
 from utils.help_func import *
-from utils.time_util import *
 from utils.constant import *
 from experiments.application.adv_detect.textbugger.textbugger_attack import TextBugger
 
@@ -59,11 +59,15 @@ def select_benign_data(classifier, data):
             benigns.append((sent, label))
             idx.append(i)
         i += 1
+    random.seed(20200306)
+    rnd_dicies = [i for i in range(len(idx))]
+    random.shuffle(rnd_dicies)
     print("Acc:{:.4f}".format(acc / len(data["test_x"])))
-    return benigns, idx
+    return [benigns[i] for i in rnd_dicies], [idx[i] for i in rnd_dicies]
 
 
 def main(model_type, data_type, word2vec_model, check_p=-1, check_point_path=None):
+    max_size = 1000
     device = "cpu"
     input_dim = 300
     model = load_model(model_type, data_type, device)
@@ -79,54 +83,58 @@ def main(model_type, data_type, word2vec_model, check_p=-1, check_point_path=Non
         check_point_data = load_pickle(check_point_path)
         adv_rst = check_point_data["ADV_RST"]
         p = check_p
-        benign_data, benign_idx = benign_data[:p], benign_idx[:p]
+        benign_data, benign_idx = benign_data[p:], benign_idx[p:]
     else:
         p = 0
-    total = len(benign_idx)
     check_point_folder = make_check_point_folder("attack_{}".format(data_type), dataset=data_type, modelType=model_type)
     # Note we can make sure the order of data is fixed since the order of processed raw data is fixed.
     # In our experiments, 1000 adversarial samples is enough.
-    for item, idx in zip(benign_data[:1200], benign_idx[:1200]):
-        progress = "{} progress:{}/{}".format(current_timestamp(), p, total)
-        p += 1
+    for item, idx in zip(benign_data, benign_idx):
         try:
             sentence, label = item
             if classifier.get_label(sentence) == label:
                 newSent, newLabel = textbugger.attack(sentence)
                 if newLabel != -1:
-                    print(progress, " ".join(newSent), newLabel)
                     adv_rst.append((idx, newSent, newLabel))
-                else:
-                    print(progress, ">>>>>>>>Failed!")
+                    p += 1
+                    if p >= max_size:
+                        break
         except UnicodeEncodeError as e:
-            print(progress, ">>>>>>>>Failed!")
             continue
-
+        sys.stdout.write("\rattacking   {:.2f}%".format(100 * p / max_size))
+        sys.stdout.flush()
         if p % 50 == 0:
-            check_point_data = {"ADV_RST": adv_rst,
-                                "VOCAB": classifier.VOB,
-                                "IDX2WORD": classifier.IDX2WORD,
-                                "WORD2IDX": classifier.WORD2IDX,
-                                "WV_MATRIX": classifier.WV_MATRIX
-                                }
+            check_point_data = {"ADV_RST": adv_rst}
             save_pickle(os.path.join(check_point_folder, "check_point-{}.pkl".format(p)), check_point_data)
 
-    ADV_DATA_PATH = getattr(getattr(AdvDataPath, data_type.upper()), model_type.upper())
-    save_pickle(get_path(ADV_DATA_PATH.ADV_TEXT), adv_rst)
-    ##################################################
-    # save changed vocab,word2idx,idx2word,wv_matrix
-    ##################################################
-    save_pickle(get_path(ADV_DATA_PATH.VOCAB), classifier.VOB)
-    save_pickle(get_path(ADV_DATA_PATH.IDX2WORD), classifier.IDX2WORD)
-    save_pickle(get_path(ADV_DATA_PATH.WORD2IDX), classifier.WORD2IDX)
-    save_pickle(get_path(ADV_DATA_PATH.WV_MATRIX), classifier.WV_MATRIX)
-
+    ADV_DATA_PATH = getattr(getattr(Application.AEs, data_type.upper()), model_type.upper())
+    save_pickle(get_path(ADV_DATA_PATH), adv_rst)
     print("Done!")
+
+
+def test_classifier():
+    device = "cpu"
+    data_type = DateSet.MR
+    model_type = ModelType.LSTM
+    model = load_model(model_type, data_type, device)
+    data = load_pickle(get_path(getattr(DataPath, data_type.upper()).PROCESSED_DATA))
+    WV_MATRIX = load_pickle(get_path(getattr(DataPath, data_type.upper()).WV_MATRIX))
+    params = {}
+    params["input_size"] = 300
+    params["WV_MATRIX"] = WV_MATRIX
+    from target_models.model_training import test
+    acc_model = test(data, model, params, device=device)
+    print(acc_model)
+    classifier = Classifier(model, model_type, 300, data["word_to_idx"], WV_MATRIX, device)
+    select_benign_data(classifier, data)
 
 
 if __name__ == '__main__':
     data_type = sys.argv[1]
     model_type = sys.argv[2]
-    main(model_type=model_type, data_type=data_type, check_p=-1)
+    word2vec_model_path = get_path(WORD2VEC_PATH)
+    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(word2vec_model_path, binary=True)
+    main(model_type=model_type, data_type=data_type, word2vec_model=word2vec_model, check_p=950,
+         check_point_path="./tmp/attack_mr/mr/lstm/check_point-950.pkl")
 
-    #
+    # test_classifier()

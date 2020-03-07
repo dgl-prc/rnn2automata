@@ -5,7 +5,6 @@ import tensorflow_hub as hub
 import tensorflow as tf
 import gensim
 from utils.constant import *
-from utils.model_data import *
 from sklearn.metrics.pairwise import cosine_similarity
 
 class TextBugger(object):
