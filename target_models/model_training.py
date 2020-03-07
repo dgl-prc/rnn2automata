@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("../")
 import copy
 from os.path import abspath
@@ -6,7 +7,7 @@ import torch.optim as optim
 from sklearn.utils import shuffle
 from target_models.gated_rnn import *
 from target_models import train_args
-from target_models.model_helper import sent2tensor,init_model
+from target_models.model_helper import sent2tensor, init_model
 from utils.constant import *
 from utils.time_util import *
 from utils.help_func import load_pickle, save_model, save_readme
@@ -20,7 +21,7 @@ def test(data, model, params, mode="test", device="cuda:0"):
         X, Y = data["test_x"], data["test_y"]
     acc = 0
     for sent, c in zip(X, Y):
-        input_tensor = sent2tensor(sent, device, data["word_to_idx"], params["input_size"], params["WV_MATRIX"])
+        input_tensor = sent2tensor(sent, params["input_size"], data["word_to_idx"], params["WV_MATRIX"], device)
         output, _ = model(input_tensor)
         # avg_h = torch.mean(output, dim=1, keepdim=False)
         lasthn = output[0][-1].unsqueeze(0)
@@ -32,7 +33,6 @@ def test(data, model, params, mode="test", device="cuda:0"):
 
 
 def train(data, params):
-
     model = init_model(params)
     device = "cuda:{}".format(params["GPU"]) if params["GPU"] != 1 else "cpu"
     model = model.to(device)
@@ -47,7 +47,7 @@ def train(data, params):
         for sent, c in zip(data["train_x"], data["train_y"]):
             label = [data["classes"].index(c)]
             label = torch.LongTensor(label).to(device)
-            input_tensor = sent2tensor(sent, device, data["word_to_idx"], params["input_size"], params["WV_MATRIX"])
+            input_tensor = sent2tensor(sent, params["input_size"], data["word_to_idx"], params["WV_MATRIX"], device)
             optimizer.zero_grad()
             output, inner_states = model(input_tensor)
             lasthn = output[0][-1].unsqueeze(0)
@@ -74,7 +74,6 @@ def train(data, params):
 
 
 def main():
-
     dataset = sys.argv[1]
     model_type = sys.argv[2]
     gpu = int(sys.argv[3])
@@ -99,4 +98,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
