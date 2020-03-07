@@ -13,15 +13,7 @@ def get_term_symbol(y_pre):
         raise Exception("unknown label:{}".format(y_pre))
 
 
-def level1_abstract(rnn_traces, y_pre, k):
-    '''
-    Parameters
-    -----------
-    rnn_traces:
-    ori_data:
-    k: number of clusters
-    :return:
-    '''
+def _rnn_traces2point(rnn_traces):
     seq_len = []
     input_points = []
     for seq in rnn_traces:
@@ -29,8 +21,10 @@ def level1_abstract(rnn_traces, y_pre, k):
         for hn_state in seq[:-1]:
             input_points.append(hn_state)
     input_points = np.array(input_points)
-    kmeans = KMeans(n_clusters=k).fit(input_points)
-    labels, cluster_centers = list(kmeans.labels_), kmeans.cluster_centers_
+    return input_points, seq_len
+
+
+def make_L1_abs_trace(labels, seq_len, y_pre):
     start_p = 0
     abs_seqs = []
     for size, y in zip(seq_len, y_pre):
@@ -40,6 +34,44 @@ def level1_abstract(rnn_traces, y_pre, k):
         abs_seqs.append(abs_trace)
         start_p += size
     return abs_seqs
+
+
+def level1_abstract(**kwargs):
+    '''
+    Parameters
+    -----------
+    kmeans_exists: bool, required.
+                   whether or not to use an pre-trained kmeans
+    rnn_traces:list(list), required.
+               the execute trace of each text on RNN
+    y_pre:list, required
+                the label of each text given by RNN
+    k: int, required when 'kmeans_exists' is false.
+                number of clusters to form.
+    kmeans: the object of sklearn.cluster.KMeans, required when 'kmeans_exists' is True.
+            pre-trained kmeans.
+    -------
+    Return:
+        abs_seqs: list(list).
+                  the level1 abstraction of each rnn trance
+        kmeans: the object of sklearn.cluster.KMeans, returned onlt when 'kmeans_exists' is False.
+    '''
+
+    rnn_traces = kwargs["rnn_traces"]
+    y_pre = kwargs["y_pre"]
+    if kwargs["kmeans_exists"]:
+        kmeans = kwargs["kmeans"]
+        input_points, seq_len = _rnn_traces2point(rnn_traces)
+        labels = list(kmeans.predict(input_points))
+        abs_seqs = make_L1_abs_trace(labels, seq_len, y_pre)
+        return abs_seqs
+    else:
+        k = kwargs["k"]
+        input_points, seq_len = _rnn_traces2point(rnn_traces)
+        kmeans = KMeans(n_clusters=k).fit(input_points)
+        labels, cluster_centers = list(kmeans.labels_), kmeans.cluster_centers_
+        abs_seqs = make_L1_abs_trace(labels, seq_len, y_pre)
+        return abs_seqs, kmeans
 
 
 def save_level1_traces(abs_seqs, output_path):
