@@ -16,19 +16,19 @@ def init_model(params):
     return model
 
 
-def sent2tensor(sent, device, WORD2IDX, INPUT_SIZE, WV_MATRIX):
+def sent2tensor(sent, input_dim, word2idx, wv_matrix, device):
     idx_seq = []
     for w in sent:
-        if w in WORD2IDX:
-            idx = WORD2IDX[w]
-        elif w.lower() in WORD2IDX:
-            idx = WORD2IDX[w.lower()]
+        if w in word2idx:
+            idx = word2idx[w]
+        elif w.lower() in word2idx:
+            idx = word2idx[w.lower()]
         else:
-            idx = WV_MATRIX.shape[0] - 1
+            idx = wv_matrix.shape[0] - 1
         idx_seq.append(idx)
-    seq = torch.zeros(1, len(idx_seq), INPUT_SIZE).to(device)
+    seq = torch.zeros(1, len(idx_seq), input_dim).to(device)
     for i, w_idx in enumerate(idx_seq):
-        seq[0][i] = torch.tensor(WV_MATRIX[w_idx])
+        seq[0][i] = torch.tensor(wv_matrix[w_idx])
     return seq
 
 

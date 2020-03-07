@@ -1,6 +1,5 @@
-import torch
 from target_models.model_training import sent2tensor
-from target_models.gated_rnn import init_model
+from target_models.model_helper import init_model
 from target_models import train_args
 from utils.help_func import *
 from utils.constant import *
@@ -28,13 +27,13 @@ def make_ori_trace(model_type, dataset, device):
     ori_traces["test_pre_y"] = []
     print("do extracting...")
     for x in data["train_x"]:
-        tensor_sequence = sent2tensor(x, device, word2idx, input_dim, wv_matrix)
+        tensor_sequence = sent2tensor(x, input_dim, word2idx, wv_matrix, device)
         hn_trace, label_trace = model.get_predict_trace(tensor_sequence)
         ori_traces["train_x"].append(hn_trace)
         ori_traces["train_pre_y"].append(label_trace[-1])
 
     for x in data["test_x"]:
-        tensor_sequence = sent2tensor(x, device, word2idx, input_dim, wv_matrix)
+        tensor_sequence = sent2tensor(x, input_dim, word2idx, wv_matrix, device)
         hn_trace, label_trace = model.get_predict_trace(tensor_sequence)
         ori_traces["test_x"].append(hn_trace)
         ori_traces["test_pre_y"].append(label_trace[-1])
@@ -42,4 +41,3 @@ def make_ori_trace(model_type, dataset, device):
     save_path = get_path(getattr(getattr(OriTrace, model_type.upper()), dataset.upper()))
     save_pickle(save_path, ori_traces)
     print("Saved!")
-
