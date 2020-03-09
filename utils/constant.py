@@ -59,7 +59,8 @@ class AbstractData:
             MR = "data/level1_abs_trace/lstm/"
 
     class Level2:
-        pass
+        class LSTM:
+            MR = "data/level2_results/lstm/"
 
 class Application:
     class AEs:

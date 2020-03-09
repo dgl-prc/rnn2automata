@@ -37,6 +37,7 @@ ID2PARENT = "id2parent"
 ID2ACTIONS = "id2actions"
 IDMERGED = "merged_prefix_id"
 
+
 class AALERGIA():
 
     def __init__(self, alpha, S, alphabet, start_symbol, output_path, show_merge_info=False):
@@ -391,9 +392,11 @@ class AALERGIA():
 
     def output_prism(self, dffa, model_name):
 
+        if not os.path.exists(self.output_path):
+            os.makedirs(self.output_path)
+
         trans_func = dffa[STM]
         trans_wfunc = dffa[STWM]
-        # self.pretty_look(trans_func, trans_wfunc)
         pm_file = "{}{}".format(model_name, self.real_used_len)
         pm_path = os.path.join(self.output_path, pm_file + ".pm")
         trans_func_path = os.path.join(self.output_path, pm_file + "_transfunc" + ".pkl")
@@ -411,11 +414,16 @@ class AALERGIA():
         lines.append("\n")
         lines.append("module {}\n".format(pm_file))
         lines.append("s:[1..{}] init 1;\n".format(total_states))
+
+        new_trans_func = defaultdict(defaultdict)
+        new_trans_wfunc = defaultdict(defaultdict)
+
         for start_s in valid_states:
             t = sum([trans_wfunc[start_s][sigma] for sigma in trans_wfunc[start_s]])
             trans_p_info = []
+            new_start_s = id2newId[start_s]
             if len(trans_func[start_s]) == 0:
-                trans_p_info.append("{}:(s'={})".format(1, id2newId[start_s]))
+                trans_p_info.append("{}:(s'={})".format(1, new_start_s))
             else:
                 for sigma in trans_func[start_s]:
                     next_s = trans_func[start_s][sigma]
@@ -423,8 +431,9 @@ class AALERGIA():
                     new_next_id = id2newId[next_s]
                     p = fre / t
                     trans_p_info.append("{}:(s'={})".format(p, new_next_id))
-            new_c_id = id2newId[start_s]  # new current id
-            lines.append("[]s={} -> {};\n".format(new_c_id, " + ".join(trans_p_info)))
+                    new_trans_func[new_start_s][sigma] = new_next_id
+                    new_trans_wfunc[new_start_s][sigma] = p
+            lines.append("[]s={} -> {};\n".format(new_start_s, " + ".join(trans_p_info)))
         lines.append("endmodule\n")
         lines.append("\n")  # empty line
 
@@ -442,18 +451,14 @@ class AALERGIA():
                 head = "label \"{}\" ".format(label)
                 tail = "|".join(["s={}".format(s_id) for s_id in ids])
                 lines.append("{} = {};\n".format(head, tail))
+
         with open(pm_path, "wt") as f:
             f.writelines(lines)
 
-        new_trans_func = defaultdict(defaultdict)
-        for old_id in trans_func:
-            new_id = id2newId[old_id]
-            for sigma in trans_func[old_id]:
-                next_id = trans_func[old_id][sigma]
-                new_next_id = id2newId[next_id]
-                new_trans_func[new_id][sigma] = new_next_id
         with open(trans_func_path, "wb") as f:
-            pickle.dump(new_trans_func, f)
+            automata = {"trans_func": dict(new_trans_func), "trans_wfunc": dict(new_trans_wfunc)}
+            pickle.dump(automata, f)
+
         print("final model size:{}".format(total_states))
         print("Prism model saved in {}".format(pm_path))
         print("Transition Function saved in {}".format(trans_func_path))
