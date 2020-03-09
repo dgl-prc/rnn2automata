@@ -17,8 +17,8 @@ def _rnn_traces2point(rnn_traces):
     seq_len = []
     input_points = []
     for seq in rnn_traces:
-        seq_len.append(len(seq) - 1)
-        for hn_state in seq[:-1]:
+        seq_len.append(len(seq))
+        for hn_state in seq:
             input_points.append(hn_state)
     input_points = np.array(input_points)
     return input_points, seq_len
