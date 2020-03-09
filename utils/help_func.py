@@ -2,9 +2,11 @@ import sys
 sys.path.append("../")
 import os
 import torch
-import numpy as np
 import re
 import pickle
+import numpy as np
+from sklearn.metrics import roc_curve, auc, accuracy_score
+
 
 
 def save_readme(parent_path, content):
@@ -92,3 +94,19 @@ def load_adv_text(file_path, shuffle=True):
     return ori_labels, adv_lables, adv_sentences
 
 
+def make_y_scores(pos, neg):
+    '''
+    Note the pos item should have a bigger value, while neg should have a smaller.
+    '''
+    assert isinstance(pos, list)
+    assert isinstance(neg, list)
+    scores = pos + neg
+    y_ture = [1] * len(pos) + [0] * len(neg)
+    return y_ture, scores
+
+
+def get_auc(pos_score, neg_score):
+    y_ture, y_scores = make_y_scores(pos=pos_score, neg=neg_score)
+    fpr, tpr, thresholds = roc_curve(y_ture, y_scores)
+    auc_score = auc(fpr, tpr)
+    return auc_score
