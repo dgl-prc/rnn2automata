@@ -37,7 +37,6 @@ def prepare_L1_data(k, model_type, data_type, device):
         idx, adv_x, adv_y = ele
         benign_x, benign_y = raw_data["test_x"][idx], raw_data["test_y"][idx]
 
-
         # benign
         benign_tensor = sent2tensor(benign_x, input_dim, word2idx, wv_matrix, device)
         benign_hn_trace, benign_label_trace = model.get_predict_trace(benign_tensor)
