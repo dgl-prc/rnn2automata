@@ -1,7 +1,7 @@
 import os
 import numpy as np
-from sklearn.cluster import KMeans
 from utils.constant import START_SYMBOL
+from level1_abstract.state_partion import *
 
 
 def get_term_symbol(y_pre):
@@ -40,16 +40,17 @@ def level1_abstract(**kwargs):
     '''
     Parameters
     -----------
-    kmeans_exists: bool, required.
-                   whether or not to use an pre-trained kmeans
+    partitioner_exists: bool, required.
+                   whether or not to use an pre-trained partitioner
     rnn_traces:list(list), required.
                the execute trace of each text on RNN
     y_pre:list, required
                 the label of each text given by RNN
     k: int, required when 'kmeans_exists' is false.
                 number of clusters to form.
-    kmeans: the object of sklearn.cluster.KMeans, required when 'kmeans_exists' is True.
+    partitioner: the object of sklearn.cluster.KMeans, required when 'kmeans_exists' is True.
             pre-trained kmeans.
+    partition_type: str, option:[km|hc], required if partitioner_exists is false
     -------
     Return:
         abs_seqs: list(list).
@@ -59,19 +60,25 @@ def level1_abstract(**kwargs):
 
     rnn_traces = kwargs["rnn_traces"]
     y_pre = kwargs["y_pre"]
-    if kwargs["kmeans_exists"]:
-        kmeans = kwargs["kmeans"]
+    if kwargs["partitioner_exists"]:
+        partioner = kwargs["partitioner"]
         input_points, seq_len = _rnn_traces2point(rnn_traces)
-        labels = list(kmeans.predict(input_points))
+        labels = list(partioner.predict(input_points))
         abs_seqs = make_L1_abs_trace(labels, seq_len, y_pre)
         return abs_seqs
     else:
         k = kwargs["k"]
         input_points, seq_len = _rnn_traces2point(rnn_traces)
-        kmeans = KMeans(n_clusters=k).fit(input_points)
-        labels, cluster_centers = list(kmeans.labels_), kmeans.cluster_centers_
+
+        if kwargs["partition_type"] == "km":
+            partitioner = Kmeans(k)
+            partitioner.fit(input_points)
+        else:
+            partitioner = EHCluster(n_clusters=k)
+            partitioner.fit(input_points)
+        labels = partitioner.get_fit_labels()
         abs_seqs = make_L1_abs_trace(labels, seq_len, y_pre)
-        return abs_seqs, kmeans
+        return abs_seqs, partitioner
 
 
 def save_level1_traces(abs_seqs, output_path):

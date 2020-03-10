@@ -55,12 +55,21 @@ class OriTrace:
 
 class AbstractData:
     class Level1:
-        class LSTM:
-            MR = "data/level1_abs_trace/lstm/"
+        class KM:
+            class LSTM:
+                MR = "data/level1_abs_trace/km/lstm/"
+        class HC:
+            class LSTM:
+                MR = "data/level1_abs_trace/hc/lstm/"
+
 
     class Level2:
-        class LSTM:
-            MR = "data/level2_results/lstm/"
+        class KM:
+            class LSTM:
+                MR = "data/level2_results/km/lstm/"
+        class HC:
+            class LSTM:
+                MR = "data/level2_results/hc/lstm/"
 
 class Application:
     class AEs:
