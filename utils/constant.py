@@ -2,10 +2,10 @@ import os
 
 PROJECT_ROOT = "/home/dgl/project/learn_automata_rnn"
 SENTENCE_ENCODER = "/home/dgl/project/Adversarial-Sampling-for-Repair/text_attack/textbugger/universal-sentence-encoder"
+PRISM_SCRIPT = "/home/dgl/project/pfa_extraction/experiments/application_adv/reachability/prism/v-4.5/bin/prism"
 WORD2VEC_PATH = "data/wordvec/GoogleNews-vectors-negative300.bin"
-PRISM_DATA_PATH = ""
-PROPERTY_FILE = ""
-PRISM_SCRIPT = ""
+PROPERTY_FILE = "experiments/application/find_important_words/properties.pctl"
+
 START_SYMBOL = 'S'
 
 
