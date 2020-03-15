@@ -1,18 +1,31 @@
+import sys
+
+sys.path.append("../../../")
 from level1_abstract.clustering_based import *
 from utils.constant import *
 from utils.help_func import load_pickle, get_auc
 from target_models.model_helper import load_model
 from target_models.model_helper import sent2tensor
 
+MIN_PROB = -1e20
 
-def prepare_L1_data(k, model_type, data_type, device):
+
+def prepare_L1_data(k, model_type, data_type, device, data_source, pt_type):
     input_dim = 300
-    ##############
-    # load k-means
-    ##############
-    L1_abs_folder = getattr(getattr(AbstractData.Level1, model_type.upper()), data_type.upper())
-    cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "train_kmeans.pkl")
-    kmeans = load_pickle(get_path(cluster_path))
+    #####################
+    # load partitioner
+    ####################
+    L1_abs_folder = getattr(AbstractData.Level1, pt_type.upper())
+    L1_abs_folder = getattr(L1_abs_folder, model_type.upper())
+    L1_abs_folder = getattr(L1_abs_folder, data_type.upper())
+
+    if pt_type == "km":
+        # Legacy issues
+        cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_kmeans.pkl".format(data_source))
+    else:
+        cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_partition.pkl".format(data_source))
+
+    partitioner = load_pickle(get_path(cluster_path))
 
     #############
     # load data
@@ -54,8 +67,10 @@ def prepare_L1_data(k, model_type, data_type, device):
     #############################
     # make level1 abstract traces
     #############################
-    benign_abs_seqs = level1_abstract(rnn_traces=benign_traces, y_pre=benign_labels, kmeans=kmeans, kmeans_exists=True)
-    adv_abs_seqs = level1_abstract(rnn_traces=adv_traces, y_pre=adv_labels, kmeans=kmeans, kmeans_exists=True)
+    benign_abs_seqs = level1_abstract(rnn_traces=benign_traces, y_pre=benign_labels, partitioner=partitioner,
+                                      partitioner_exists=True)
+    adv_abs_seqs = level1_abstract(rnn_traces=adv_traces, y_pre=adv_labels, partitioner=partitioner,
+                                   partitioner_exists=True)
 
     return benign_abs_seqs, adv_abs_seqs
 
@@ -68,36 +83,47 @@ def _get_path_prob(traces, trans_func, trans_wfunc):
         acc_prob = 1.0
         for sigma in seq[1:]:
             sigma = str(sigma)
-            acc_prob *= trans_wfunc[c_id][sigma]
-            c_id = trans_func[c_id][sigma]
+            if sigma not in trans_wfunc[c_id]:
+                acc_prob = MIN_PROB
+                break
+            else:
+                acc_prob *= trans_wfunc[c_id][sigma]
+                c_id = trans_func[c_id][sigma]
         # normalize
-        acc_prob = np.log(acc_prob) / len(seq)
+        acc_prob = np.log(acc_prob) / len(seq) if acc_prob != MIN_PROB else acc_prob
         probs.append(acc_prob)
     return probs
 
 
-def do_detect(benign_traces, adv_traces, k, model_type, data_type):
+def do_detect(benign_traces, adv_traces, k, model_type, data_type, data_source, total_symbols, pt_type):
     # load dfa
-    l2_path = getattr(getattr(AbstractData.Level2, model_type.upper()), data_type.upper())
-    tranfunc_path = get_path(os.path.join(l2_path, "{}_{}_k{}_187897_transfunc.pkl".format(model_type, data_type, k)))
-    dfa = load_pickle(tranfunc_path)  # transfunc[current_id][sigma]=next_id
+    l2_path = getattr(getattr(getattr(AbstractData.Level2, pt_type.upper()), model_type.upper()), data_type.upper())
+    tranfunc_path = get_path(
+        os.path.join(l2_path, data_source,
+                     "{}_{}_k{}_{}_transfunc.pkl".format(model_type, data_type, k, total_symbols)))
+    dfa = load_pickle(tranfunc_path)
     trans_func, trans_wfunc = dict(dfa["trans_func"]), dict(dfa["trans_wfunc"])
 
     # calculate path prob
     benign_prob = _get_path_prob(benign_traces, trans_func, trans_wfunc)
     adv_prob = _get_path_prob(adv_traces, trans_func, trans_wfunc)
 
-    # auc
+    b_break = len(np.where(np.array(benign_prob) == MIN_PROB)[0])
+    adv_break = len(np.where(np.array(adv_prob) == MIN_PROB)[0])
+    print("b_break:{},adv_break:{}".format(b_break, adv_break))
     auc = get_auc(pos_score=benign_prob, neg_score=adv_prob)
-
     return auc
 
 
 if __name__ == '__main__':
-    _k = 2
     _device = "cpu"
     _model_type = ModelType.LSTM
     _data_type = DateSet.MR
-    benign_abs_seqs, adv_abs_seqs = prepare_L1_data(_k, _model_type, _data_type, _device)
-    auc = do_detect(benign_abs_seqs, adv_abs_seqs, _k, _model_type, _data_type)
-    print("auc:".format(auc))
+    _data_source = "test"
+    _total_symbols = "49056"
+    _pt_type = "hc"
+    for _k in range(10, 22, 2):
+        benign_abs_seqs, adv_abs_seqs = prepare_L1_data(_k, _model_type, _data_type, _device, _data_source, _pt_type)
+        auc = do_detect(benign_abs_seqs, adv_abs_seqs, _k, _model_type, _data_type, _data_source, _total_symbols,
+                        _pt_type)
+        print("k={}, auc:{:.4f}".format(_k, auc))

@@ -402,10 +402,10 @@ class AALERGIA():
         trans_func_path = os.path.join(self.output_path, pm_file + "_transfunc" + ".pkl")
 
         valid_states = self._get_valid_states(trans_func)
-        total_states = len(valid_states)
-        id2newId = {}
         old_ids = list(valid_states)
         old_ids.sort(key=lambda x: int(x))
+        total_states = len(old_ids)
+        id2newId = {}
         for new_id, old_id in enumerate(old_ids):
             id2newId[old_id] = new_id + 1  # 1-index
 
@@ -418,7 +418,7 @@ class AALERGIA():
         new_trans_func = defaultdict(defaultdict)
         new_trans_wfunc = defaultdict(defaultdict)
 
-        for start_s in valid_states:
+        for start_s in old_ids:
             t = sum([trans_wfunc[start_s][sigma] for sigma in trans_wfunc[start_s]])
             trans_p_info = []
             new_start_s = id2newId[start_s]
@@ -439,7 +439,7 @@ class AALERGIA():
 
         # make labels
         label2newIds = defaultdict(list)
-        for id in valid_states:
+        for id in old_ids:
             prefix = self.id2prefix[id]
             new_id = id2newId[id]
             label = self.last_symbol(prefix)
