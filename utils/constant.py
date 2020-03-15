@@ -3,7 +3,15 @@ import os
 PROJECT_ROOT = "/home/dgl/project/learn_automata_rnn"
 SENTENCE_ENCODER = "/home/dgl/project/Adversarial-Sampling-for-Repair/text_attack/textbugger/universal-sentence-encoder"
 WORD2VEC_PATH = "data/wordvec/GoogleNews-vectors-negative300.bin"
+PRISM_DATA_PATH = ""
+PROPERTY_FILE = ""
+PRISM_SCRIPT = ""
 START_SYMBOL = 'S'
+
+
+class PartitionType:
+    KM = "KM"  # kmeans
+    HC = "hc" # hierarchical-clustering
 
 
 def get_path(r_path):
@@ -58,18 +66,20 @@ class AbstractData:
         class KM:
             class LSTM:
                 MR = "data/level1_abs_trace/km/lstm/"
+
         class HC:
             class LSTM:
                 MR = "data/level1_abs_trace/hc/lstm/"
-
 
     class Level2:
         class KM:
             class LSTM:
                 MR = "data/level2_results/km/lstm/"
+
         class HC:
             class LSTM:
                 MR = "data/level2_results/hc/lstm/"
+
 
 class Application:
     class AEs:
