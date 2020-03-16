@@ -1,6 +1,12 @@
+from utils.constant import *
 
+def get_L1_data_path(partition_type, model_type, data_type, data_source, k):
+    L1_data_path = getattr(AbstractData.Level1, partition_type.upper())
+    L1_data_path = getattr(getattr(L1_data_path, model_type.upper()), data_type.upper())
+    L1_data_path = get_path(os.path.join(L1_data_path, "k={}".format(k), "{}.txt".format(data_source)))
+    return L1_data_path
 
-def load_data(data_path, symbols_count, start_symbol=None):
+def load_trace_data(data_path, symbols_count, start_symbol=None):
     '''
     The data file should comply the following rules:
     1. each line is a sequence
