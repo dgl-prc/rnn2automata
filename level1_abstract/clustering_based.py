@@ -69,7 +69,6 @@ def level1_abstract(**kwargs):
     else:
         k = kwargs["k"]
         input_points, seq_len = _rnn_traces2point(rnn_traces)
-
         if kwargs["partition_type"] == "km":
             partitioner = Kmeans(k)
             partitioner.fit(input_points)

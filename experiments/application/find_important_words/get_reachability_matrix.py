@@ -1,11 +1,10 @@
 import sys
-
 sys.path.append("../../../")
 import re
 import subprocess
-from utils.constant import *
 import shutil
 import numpy as np
+from utils.constant import *
 from utils.time_util import folder_timestamp
 
 
