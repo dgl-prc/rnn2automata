@@ -10,7 +10,7 @@ START_SYMBOL = 'S'
 
 
 class PartitionType:
-    KM = "KM"  # kmeans
+    KM = "km"  # kmeans
     HC = "hc" # hierarchical-clustering
 
 
