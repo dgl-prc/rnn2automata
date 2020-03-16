@@ -1,8 +1,7 @@
 import sys
-
 sys.path.append("../../../")
-import random
 import gensim
+from experiments.exp_utils import select_benign_data
 from target_models.model_helper import load_model
 from target_models.classifier_adapter import Classifier
 from utils.help_func import *
@@ -45,25 +44,6 @@ update the vocabulary and its corresponding word vectors.
 #         self.WORD2IDX[word] = size_vob
 #         self.IDX2WORD[size_vob] = word
 #         self.WV_MATRIX = np.concatenate((self.WV_MATRIX, np.array([word_vec])), axis=0)
-
-
-def select_benign_data(classifier, data):
-    acc = 0
-    benigns = []
-    idx = []
-    i = 0
-    for sent, label in zip(data["test_x"], data["test_y"]):
-        pred = classifier.get_label(sent)
-        if pred == label:
-            acc += 1
-            benigns.append((sent, label))
-            idx.append(i)
-        i += 1
-    random.seed(20200306)
-    rnd_dicies = [i for i in range(len(idx))]
-    random.shuffle(rnd_dicies)
-    print("Acc:{:.4f}".format(acc / len(data["test_x"])))
-    return [benigns[i] for i in rnd_dicies], [idx[i] for i in rnd_dicies]
 
 
 def main(model_type, data_type, word2vec_model, check_p=-1, check_point_path=None):

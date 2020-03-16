@@ -6,6 +6,7 @@ from utils.constant import *
 from utils.help_func import load_pickle, get_auc
 from target_models.model_helper import load_model
 from target_models.model_helper import sent2tensor
+from experiments.exp_utils import load_dfa, load_partitioner
 
 MIN_PROB = -1e20
 
@@ -15,18 +16,7 @@ def prepare_L1_data(k, model_type, data_type, device, data_source, pt_type):
     #####################
     # load partitioner
     ####################
-    L1_abs_folder = getattr(AbstractData.Level1, pt_type.upper())
-    L1_abs_folder = getattr(L1_abs_folder, model_type.upper())
-    L1_abs_folder = getattr(L1_abs_folder, data_type.upper())
-
-    if pt_type == "km":
-        # Legacy issues
-        cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_kmeans.pkl".format(data_source))
-    else:
-        cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_partition.pkl".format(data_source))
-
-    partitioner = load_pickle(get_path(cluster_path))
-
+    partitioner = load_partitioner(model_type, data_type, pt_type, k, data_source)
     #############
     # load data
     #############
@@ -97,17 +87,13 @@ def _get_path_prob(traces, trans_func, trans_wfunc):
 
 def do_detect(benign_traces, adv_traces, k, model_type, data_type, data_source, total_symbols, pt_type):
     # load dfa
-    l2_path = getattr(getattr(getattr(AbstractData.Level2, pt_type.upper()), model_type.upper()), data_type.upper())
-    tranfunc_path = get_path(
-        os.path.join(l2_path, data_source,
-                     "{}_{}_k{}_{}_transfunc.pkl".format(model_type, data_type, k, total_symbols)))
-    dfa = load_pickle(tranfunc_path)
-    trans_func, trans_wfunc = dict(dfa["trans_func"]), dict(dfa["trans_wfunc"])
+    trans_func, trans_wfunc = load_dfa(model_type, data_type, k, total_symbols, data_source, pt_type)
 
     # calculate path prob
     benign_prob = _get_path_prob(benign_traces, trans_func, trans_wfunc)
     adv_prob = _get_path_prob(adv_traces, trans_func, trans_wfunc)
 
+    # transition undefined
     b_break = len(np.where(np.array(benign_prob) == MIN_PROB)[0])
     adv_break = len(np.where(np.array(adv_prob) == MIN_PROB)[0])
     print("b_break:{},adv_break:{}".format(b_break, adv_break))
