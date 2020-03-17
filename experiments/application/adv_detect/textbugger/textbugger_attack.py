@@ -7,18 +7,20 @@ import gensim
 from utils.constant import *
 from sklearn.metrics.pairwise import cosine_similarity
 
+
 class TextBugger(object):
     '''
     The classifier should implement the following interface.
     def get_label(self, sent)
     def get_probs(self, sent)
     '''
+
     def __init__(self, classifier, word2vec_model):
         self.nlp = spacy.load("en")
         self.classifier = classifier
         self.topn = 5
         self.sim_epsilon = 0.8
-        if isinstance(word2vec_model,str):
+        if isinstance(word2vec_model, str):
             self.word2vec = gensim.models.KeyedVectors.load_word2vec_format(word2vec_model, binary=False)
         else:
             self.word2vec = word2vec_model
@@ -105,9 +107,9 @@ class TextBugger(object):
             return sent_list
         return best_newSentList
 
-    def similarity(self,x1, x2):
-        assert isinstance(x1,list)
-        assert isinstance(x2,list)
+    def similarity(self, x1, x2):
+        assert isinstance(x1, list)
+        assert isinstance(x2, list)
         with tf.Graph().as_default():
             self.sentence_encoder = hub.Module(SENTENCE_ENCODER)
             with tf.Session() as tf_sess:
@@ -133,12 +135,7 @@ class TextBugger(object):
                 newSent = self.sentsList2wordsList(newSentsList)
                 newLabel = self.classifier.get_label(newSent)
                 if newLabel != ori_label:
-                    sim = self.similarity(input_text,newSent)
+                    sim = self.similarity(input_text, newSent)
                     if sim > self.sim_epsilon:
                         return newSent, newLabel
         return None, -1
-
-
-
-
-
