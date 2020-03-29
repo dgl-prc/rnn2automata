@@ -11,7 +11,7 @@ from target_models.model_helper import sent2tensor, init_model
 from utils.constant import *
 from utils.time_util import *
 from utils.help_func import load_pickle, save_model, save_readme
-
+from data.text_utils import filter_stop_words
 
 def test(data, model, params, mode="test", device="cuda:0"):
     model.eval()
@@ -21,6 +21,8 @@ def test(data, model, params, mode="test", device="cuda:0"):
         X, Y = data["test_x"], data["test_y"]
     acc = 0
     for sent, c in zip(X, Y):
+        if params["use_clean"]:
+            sent = filter_stop_words(sent)
         input_tensor = sent2tensor(sent, params["input_size"], data["word_to_idx"], params["WV_MATRIX"], device)
         output, _ = model(input_tensor)
         # avg_h = torch.mean(output, dim=1, keepdim=False)
@@ -45,6 +47,8 @@ def train(data, params):
         i = 0
         model.train()
         for sent, c in zip(data["train_x"], data["train_y"]):
+            if params["use_clean"]:
+                sent = filter_stop_words(sent)
             label = [data["classes"].index(c)]
             label = torch.LongTensor(label).to(device)
             input_tensor = sent2tensor(sent, params["input_size"], data["word_to_idx"], params["WV_MATRIX"], device)
@@ -77,6 +81,7 @@ def main():
     dataset = sys.argv[1]
     model_type = sys.argv[2]
     gpu = int(sys.argv[3])
+    use_clean = int(sys.argv[4])
 
     params = getattr(train_args, "args_{}_{}".format(model_type, dataset))()
     data = load_pickle(get_path(getattr(DataPath, dataset.upper()).PROCESSED_DATA))
@@ -85,6 +90,7 @@ def main():
     params["WV_MATRIX"] = wv_matrix
     params["GPU"] = gpu
     params["rnn_type"] = model_type
+    params["use_clean"] = use_clean
 
     model, train_acc, test_acc = train(data, params)
 
