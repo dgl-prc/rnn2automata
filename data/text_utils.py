@@ -8,15 +8,13 @@ stop_words = set(stopwords.words('english'))
 special_symbols = set({",", ".", ";", "!", ":", '"', "'", "(", ")", "{", "}", "--"})
 STOP_WORDS = stop_words | special_symbols
 
-
 def filter_stop_words(sent):
     """
     Parameters.
     -----------
     sent: list.
     """
-    return [word for word in sent if word in STOP_WORDS]
-
+    return [word for word in sent if word not in STOP_WORDS]
 
 def clean_data_for_look(text):
     REPLACE_BY_SPACE_RE = re.compile('[/{}\[\]\|@#*]')
