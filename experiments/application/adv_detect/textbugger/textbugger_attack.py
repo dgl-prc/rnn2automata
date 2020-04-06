@@ -1,6 +1,7 @@
-import numpy as np
 import spacy
 import copy
+import random
+import numpy as np
 import tensorflow_hub as hub
 import tensorflow as tf
 import gensim
@@ -14,12 +15,18 @@ class TextBugger(object):
     def get_label(self, sent)
     def get_probs(self, sent)
     '''
+    DELETE_C = "DELC"
+    INSERT = "INSERT"
+    SWAP_C = "SWAPC"
+    SUB_C = "SUBC"
+    SUB_W = "SUBW"
 
-    def __init__(self, classifier, word2vec_model):
+    def __init__(self, classifier, word2vec_model, bug_mode):
         self.nlp = spacy.load("en")
         self.classifier = classifier
         self.topn = 5
         self.sim_epsilon = 0.8
+        self.bug_mode = bug_mode
         if isinstance(word2vec_model, str):
             self.word2vec = gensim.models.KeyedVectors.load_word2vec_format(word2vec_model, binary=False)
         else:
@@ -83,6 +90,61 @@ class TextBugger(object):
         new_sent_list[sent_idx][w_idx] = new_word
         return new_sent_list
 
+    def insert_space(self):
+        """
+         Insert a space into the word. Generally, words are segmented by spaces in English.
+         Considering the usability of text, we apply this method only when the length of the
+         word is shorter than 6 characters since long words might be split into two legitimate words
+        :return:
+        """
+        pass
+
+    def delete_character(self, sent_idx, w_idx, sent_list):
+        '''
+         Delete a random character of the word except for the first and the last character
+        :return:
+        '''
+        target_word = sent_list[sent_idx][w_idx]
+        new_word = [c for c in target_word]
+        if len(target_word) < 3:
+            return sent_list
+        c_idxs = [i for i in range(len(target_word))]
+        i = random.choice(c_idxs[1:-1])
+        new_word.pop(i)
+        new_word = "".join(new_word)
+        new_sent = copy.deepcopy(sent_list)
+        new_sent[sent_idx][w_idx] = new_word
+        return new_sent
+
+    def swap_characters(self, sent_idx, w_idx, sent_list):
+        """
+         Swap random two adjacent letters in the word but do not alter the first or last
+         letter.
+         For this reason, this method is only applied to words longer than 4 letters.
+        :return:
+        """
+        target_word = sent_list[sent_idx][w_idx]
+        if len(target_word) < 4:
+            return sent_list
+
+        new_word = [c for c in target_word]
+        c_idxs = [i for i in range(len(target_word))]
+        i, j = random.sample(c_idxs[1:-1], 2)
+        ci, cj = new_word[i], new_word[j]
+        new_word[i], new_word[j] = cj, ci
+        new_sent = copy.deepcopy(sent_list)
+        new_sent[sent_idx][w_idx] = new_word
+        return new_sent
+
+    def substitute_character(self, sent_idx, w_idx, sent_list):
+        '''
+         Replace characters with visually similar characters (e.g., replacing “o”
+         with “0”, “l” with “1”, “a” with “@”) or adjacent characters in
+         the keyboard (e.g., replacing “m” with “n”)
+        :return:
+        '''
+        pass
+
     def selectBug(self, sent_idx, w_idx, sent_list, label, prob):
         '''
         Substitute-W
@@ -91,21 +153,31 @@ class TextBugger(object):
         target_word = sent_list[sent_idx][w_idx]
         if target_word not in self.word2vec.vocab:
             return sent_list
-        words_list = self.word2vec.most_similar(positive=[target_word], topn=self.topn)
-        bugs = [item[0] for item in words_list]
-        max_score = 0
-        best_newSentList = []
-        for bug in bugs:
-            new_sent_list = self.replace_word(bug, sent_idx, w_idx, sent_list)
-            new_probs = self.classifier.get_probs(self.sentsList2wordsList(new_sent_list))
-            new_prob = new_probs[label]
-            score = prob - new_prob
-            if score > max_score:
-                best_newSentList = new_sent_list
-                max_score = score
-        if max_score == 0:
-            return sent_list
-        return best_newSentList
+        if self.bug_mode == TextBugger.SUB_W:
+            words_list = self.word2vec.most_similar(positive=[target_word], topn=self.topn)
+            bugs = [item[0] for item in words_list]
+            max_score = 0
+            best_newSentList = []
+            for bug in bugs:
+                new_sent_list = self.replace_word(bug, sent_idx, w_idx, sent_list)
+                new_probs = self.classifier.get_probs(self.sentsList2wordsList(new_sent_list))
+                new_prob = new_probs[label]
+                score = prob - new_prob
+                if score > max_score:
+                    best_newSentList = new_sent_list
+                    max_score = score
+            if max_score == 0:
+                new_sent = sent_list
+            else:
+                new_sent = best_newSentList
+        elif self.bug_mode == TextBugger.DELETE_C:
+            new_sent = self.delete_character(sent_idx, w_idx, sent_list)
+        elif self.bug_mode == TextBugger.SWAP_C:
+            new_sent = self.swap_characters(sent_idx, w_idx, sent_list)
+        else:
+            new_sent = self.substitute_character(sent_idx, w_idx, sent_list)
+
+        return new_sent
 
     def similarity(self, x1, x2):
         assert isinstance(x1, list)
