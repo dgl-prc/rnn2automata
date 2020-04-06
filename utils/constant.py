@@ -7,11 +7,12 @@ WORD2VEC_PATH = "data/wordvec/GoogleNews-vectors-negative300.bin"
 PROPERTY_FILE = "experiments/application/find_important_words/properties.pctl"
 
 START_SYMBOL = 'S'
-
+STANDARD_PATH = "STANDARD"
 
 class PartitionType:
     KM = "km"  # kmeans
-    HC = "hc" # hierarchical-clustering
+    KMP = "kmp"  # kmeans based on probas
+    HC = "hc"  # hierarchical-clustering
 
 
 def get_path(r_path):
@@ -32,8 +33,8 @@ class ModelType:
 class DataPath:
     class IMDB:
         RAW_DATA = "data/training_data/imdb/raw"
-        PROCESSED_DATA = "data/training_data/imdb/processed_mr.pkl"
-        WV_MATRIX = "data/training_data/imdb/mr_wv_matrix.pkl"
+        PROCESSED_DATA = "data/training_data/imdb/processed_imdb.pkl"
+        WV_MATRIX = "data/training_data/imdb/imdb_wv_matrix.pkl"
 
     class MR:
         RAW_DATA = "data/training_data//mr/raw"
@@ -42,46 +43,63 @@ class DataPath:
 
 
 class TrainedModel:
-    class LSTM:
-        IMDB = "data/trained_models/lstm/imdb/"
-        MR = "data/trained_models/lstm/mr/train_acc-0.8243-test_acc-0.7788.pkl"
-
-    class GRU:
-        IMDB = ""
-        MR = ""
+    # data/no_stopws/trained_models/{data_type}/{model_type}/{file_name}
+    NO_STOPW = get_path("data/no_stopws/trained_models/{}/{}/{}")
+    # class LSTM:
+    #     IMDB = "data/trained_models/lstm/imdb/"
+    #     MR = "data/trained_models/lstm/mr/"
+    #     # MR = "data/trained_models/lstm/mr/train_acc-0.8243-test_acc-0.7788.pkl"
+    #
+    # class GRU:
+    #     IMDB = "data/trained_models/gru/imdb/"
+    #     MR = "data/trained_models/gru/mr/"
 
 
 class OriTrace:
-    class LSTM:
-        IMDB = "data/ori_trace/lstm/imdb.pkl"
-        MR = "data/ori_trace/lstm/mr.pkl"
-
-    class GRU:
-        IMDB = "data/ori_trace/gru/imdb.pkl"
-        MR = "data/ori_trace/gru/mr.pkl"
+    NO_STOPW = get_path("data/no_stopws/ori_trace/{}/{}.pkl")  # data_type/model_type
+    # class LSTM:
+    #     IMDB = "data/ori_trace/lstm/imdb.pkl"
+    #     MR = "data/ori_trace/lstm/mr.pkl"
+    #
+    # class GRU:
+    #     IMDB = "data/ori_trace/gru/imdb.pkl"
+    #     MR = "data/ori_trace/gru/mr.pkl"
 
 
 class AbstractData:
     class Level1:
-        class KM:
-            class LSTM:
-                MR = "data/level1_abs_trace/km/lstm/"
-
-        class HC:
-            class LSTM:
-                MR = "data/level1_abs_trace/hc/lstm/"
+        # e.g. (data_type, model_type, k, data_source+".txt")
+        NO_STOPW = get_path("data/no_stopws/L1_trace/{}/{}/k={}/{}")
+        # class KM:
+        #     class LSTM:
+        #         MR = "data/level1_abs_trace/km/lstm/"
+        #
+        # class KMP:
+        #     class LSTM:
+        #         MR = "data/level1_abs_trace/kmp/lstm/"
+        #
+        # class HC:
+        #     class LSTM:
+        #         MR = "data/level1_abs_trace/hc/lstm/"
 
     class Level2:
-        class KM:
-            class LSTM:
-                MR = "data/level2_results/km/lstm/"
-
-        class HC:
-            class LSTM:
-                MR = "data/level2_results/hc/lstm/"
+        NO_STOPW = get_path("data/no_stopws/L2_results/{}/{}/k={}/alpha={}")  # {data_type}/{model_type}/
+        # class KM:
+        #     class LSTM:
+        #         MR = "data/level2_results/km/lstm/"
+        #
+        # class KMP:
+        #     class LSTM:
+        #         MR = "data/level2_results/kmp/lstm/"
+        #
+        # class HC:
+        #     class LSTM:
+        #         MR = "data/level2_results/hc/lstm/"
 
 
 class Application:
     class AEs:
-        class MR:
-            LSTM = "data/application/aes/mr/lstm.pkl"
+        NO_STOPW = get_path("data/no_stopws/adv_text/{}/{}/{}.pkl")  # /{data_type}/{model_type}/{bug_model}.pkl
+        #
+        # class MR:
+        #     LSTM = "data/application/aes/mr/lstm-{}.pkl"  # different mode.
