@@ -53,9 +53,10 @@ class AALERGIA():
         self.alphabet2id = {w: i for i, w in enumerate(self.alphabet)}
         self.id2alphabet = {i: w for i, w in enumerate(self.alphabet)}
         # note that each seq should be the list type
-        print(current_timestamp(), "extract preifx")
+        print("{} extract preifx".format(current_timestamp()))
         self.prefix2freq, self.FinalStateFreq, self.real_used_len = self.extract_prefix(S)
         self.prefix = [prefix for prefix in self.prefix2freq]
+        print("{} total prefixces:{}".format(current_timestamp(), len(self.prefix)))
         self.prefix2id, self.id2prefix, self.id2parent, self.id2children, self.id2actions = self.order_prefix()
         self.ori_trans_func, self.ori_trans_wfunc = self.makeDLMC()
         self.PDFA_T, self.FinalStateProb = self.makePDFA()
@@ -397,7 +398,7 @@ class AALERGIA():
 
         trans_func = dffa[STM]
         trans_wfunc = dffa[STWM]
-        pm_file = "{}{}".format(model_name, self.real_used_len)
+        pm_file = "{}_{}".format(model_name, self.real_used_len)
         pm_path = os.path.join(self.output_path, pm_file + ".pm")
         trans_func_path = os.path.join(self.output_path, pm_file + "_transfunc" + ".pkl")
 

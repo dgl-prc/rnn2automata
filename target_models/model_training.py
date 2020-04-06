@@ -13,6 +13,7 @@ from utils.time_util import *
 from utils.help_func import load_pickle, save_model, save_readme
 from data.text_utils import filter_stop_words
 
+
 def test(data, model, params, mode="test", device="cuda:0"):
     model.eval()
     if mode == "train":
@@ -36,7 +37,7 @@ def test(data, model, params, mode="test", device="cuda:0"):
 
 def train(data, params):
     model = init_model(params)
-    device = "cuda:{}".format(params["GPU"]) if params["GPU"] != 1 else "cpu"
+    device = params["device"]
     model = model.to(device)
     optimizer = optim.Adadelta(model.parameters(), params["LEARNING_RATE"])
     criterion = nn.CrossEntropyLoss()
@@ -72,6 +73,7 @@ def train(data, params):
         if test_acc > max_test_acc:
             max_test_acc = test_acc
             best_model = copy.deepcopy(model)
+            best_model.i2h.flatten_parameters()
     max_train_acc = test(data, best_model, params, mode="train", device=device)
     print("train_acc:{0:.4f}, test acc:{1:.4f}".format(max_train_acc, max_test_acc))
     return best_model, max_train_acc, max_test_acc
@@ -88,17 +90,20 @@ def main():
     wv_matrix = load_pickle(get_path(getattr(DataPath, dataset.upper()).WV_MATRIX))
     train_args.add_data_info(data, params)
     params["WV_MATRIX"] = wv_matrix
-    params["GPU"] = gpu
+    params["device"] = "cuda:{}".format(gpu) if gpu >= 0 else "cpu"
     params["rnn_type"] = model_type
     params["use_clean"] = use_clean
 
     model, train_acc, test_acc = train(data, params)
 
     # save model
-    save_folder = getattr(getattr(TrainedModel, model_type.upper()), dataset.upper())
+    if use_clean:
+        save_folder = "data/no_stopws/trained_models/{}/{}/".format(dataset, model_type)
+    else:
+        save_folder = getattr(getattr(TrainedModel, model_type.upper()), dataset.upper())
     save_path = os.path.join(PROJECT_ROOT, save_folder, folder_timestamp())
     save_model(model, train_acc, test_acc, abspath(save_path))
-    save_readme(save_path, ["{}:{}\n".format(key, params[key]) for key in params.keys()])
+    save_readme(save_path, ["{}:{}\n".format(key, params[key]) for key in params.keys() if key != "WV_MATRIX"])
     print("model saved to {}".format(save_path))
 
 

@@ -29,6 +29,11 @@ class Kmeans(Partitioner):
         return list(self.kmeans.labels_)
 
 
+class PreditBasedKmeans(Partitioner):
+    def __init__(self, n_clusters):
+        self.kmeans = KMeans(n_clusters=n_clusters)
+
+
 class EHCluster(Partitioner):
     '''
     Enhanced hierarchical clustering (one of the Agglomerative clustering).
@@ -49,4 +54,3 @@ class EHCluster(Partitioner):
 
     def get_fit_labels(self):
         return list(self.clustering.labels_)
-

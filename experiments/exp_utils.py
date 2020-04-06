@@ -22,7 +22,28 @@ def select_benign_data(classifier, data):
     return [benigns[i] for i in rnd_dicies], [idx[i] for i in rnd_dicies]
 
 
-def load_dfa(model_type, data_type, k, total_symbols, data_source, pt_type):
+# def load_dfa(model_type, data_type, k, total_symbols, data_source, pt_type):
+#     '''
+#     Parameters.
+#     ------------
+#     model_type:
+#     data_type:
+#     k:
+#     total_symbols:
+#     data_source: built on test set or train set
+#     pt_type: partition type
+#     :return:
+#     '''
+#     l2_path = getattr(getattr(getattr(AbstractData.Level2, pt_type.upper()), model_type.upper()), data_type.upper())
+#     tranfunc_path = get_path(
+#         os.path.join(l2_path, data_source,
+#                      "{}_{}_k{}_{}_transfunc.pkl".format(model_type, data_type, k, total_symbols)))
+#     dfa = load_pickle(tranfunc_path)
+#     trans_func, trans_wfunc = dict(dfa["trans_func"]), dict(dfa["trans_wfunc"])
+#     return trans_func, trans_wfunc
+
+# just for debug
+def load_dfa(model_type, data_type, k, total_symbols, data_source, pt_type, alpha=None):
     '''
     Parameters.
     ------------
@@ -35,9 +56,15 @@ def load_dfa(model_type, data_type, k, total_symbols, data_source, pt_type):
     :return:
     '''
     l2_path = getattr(getattr(getattr(AbstractData.Level2, pt_type.upper()), model_type.upper()), data_type.upper())
-    tranfunc_path = get_path(
-        os.path.join(l2_path, data_source,
-                     "{}_{}_k{}_{}_transfunc.pkl".format(model_type, data_type, k, total_symbols)))
+    if alpha:
+        tranfunc_path = get_path(
+            os.path.join(l2_path, data_source,
+                         "{}_{}_k{}_alpha-{}_{}_transfunc.pkl".format(model_type, data_type, k, alpha, total_symbols)))
+    else:
+        tranfunc_path = get_path(
+            os.path.join(l2_path, data_source,
+                         "{}_{}_k{}_{}_transfunc.pkl".format(model_type, data_type, k, total_symbols)))
+
     dfa = load_pickle(tranfunc_path)
     trans_func, trans_wfunc = dict(dfa["trans_func"]), dict(dfa["trans_wfunc"])
     return trans_func, trans_wfunc
@@ -49,7 +76,8 @@ def load_partitioner(model_type, data_type, pt_type, k, data_source):
     L1_abs_folder = getattr(L1_abs_folder, data_type.upper())
     if pt_type == "km":
         # Legacy issues
-        cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_kmeans.pkl".format(data_source))
+        # cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_kmeans.pkl".format(data_source))
+        cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_partition.pkl".format(data_source))
     else:
         cluster_path = os.path.join(L1_abs_folder, "k={}".format(k), "{}_partition.pkl".format(data_source))
 

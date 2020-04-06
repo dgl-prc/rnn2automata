@@ -1,7 +1,9 @@
 import os
+import torch
 import numpy as np
-from utils.constant import START_SYMBOL
+from utils.constant import START_SYMBOL, PartitionType
 from level1_abstract.state_partion import *
+from target_models.model_helper import sent2tensor
 
 
 def get_term_symbol(y_pre):
@@ -11,6 +13,24 @@ def get_term_symbol(y_pre):
         return "P"
     else:
         raise Exception("unknown label:{}".format(y_pre))
+
+
+def _hn2probas(hn_vec, rnn):
+    tensor = torch.unsqueeze(torch.tensor(hn_vec), 0)
+    probas = rnn.output_pr_dstr(tensor).cpu().detach().squeeze().numpy()
+    return probas
+
+
+def _rnn_trace2point_probas(rnn_traces, rnn):
+    seq_len = []
+    input_points = []
+    for seq in rnn_traces:
+        seq_len.append(len(seq))
+        for hn_state in seq:
+            probas = _hn2probas(hn_state, rnn)
+            input_points.append(probas)
+    input_points = np.array(input_points)
+    return input_points, seq_len
 
 
 def _rnn_traces2point(rnn_traces):
@@ -48,9 +68,10 @@ def level1_abstract(**kwargs):
                 the label of each text given by RNN
     k: int, required when 'kmeans_exists' is false.
                 number of clusters to form.
-    partitioner: the object of sklearn.cluster.KMeans, required when 'kmeans_exists' is True.
+    partitioner: the object of sklearn.cluster.KMeans, required when 'partitioner_exists' is True.
             pre-trained kmeans.
-    partition_type: str, option:[km|hc], required if partitioner_exists is false
+    partition_type: str, option:[km|km-p|hc], required if partitioner_exists is false
+    rnn: rnn model. instance of target_models.my_module.Mymodul.
     -------
     Return:
         abs_seqs: list(list).
@@ -60,24 +81,40 @@ def level1_abstract(**kwargs):
 
     rnn_traces = kwargs["rnn_traces"]
     y_pre = kwargs["y_pre"]
+    pt_type = kwargs["partition_type"]
+
+    if pt_type == PartitionType.KMP:
+        rnn = kwargs["rnn"]
+        input_points, seq_len = _rnn_trace2point_probas(rnn_traces, rnn)
+    else:
+        input_points, seq_len = _rnn_traces2point(rnn_traces)
+
     if kwargs["partitioner_exists"]:
         partioner = kwargs["partitioner"]
-        input_points, seq_len = _rnn_traces2point(rnn_traces)
         labels = list(partioner.predict(input_points))
         abs_seqs = make_L1_abs_trace(labels, seq_len, y_pre)
         return abs_seqs
     else:
         k = kwargs["k"]
-        input_points, seq_len = _rnn_traces2point(rnn_traces)
-        if kwargs["partition_type"] == "km":
-            partitioner = Kmeans(k)
-            partitioner.fit(input_points)
-        else:
+        if pt_type == PartitionType.HC:
             partitioner = EHCluster(n_clusters=k)
             partitioner.fit(input_points)
+        else:
+            partitioner = Kmeans(k)
+            partitioner.fit(input_points)
+
         labels = partitioner.get_fit_labels()
         abs_seqs = make_L1_abs_trace(labels, seq_len, y_pre)
         return abs_seqs, partitioner
+
+
+def sent2L1_trace(sent, model, word2idx, wv_matrix, device, partitioner, pt_type):
+    sent_tensor = sent2tensor(sent, 300, word2idx, wv_matrix, device)
+    benign_hn_trace, benign_label_trace = model.get_predict_trace(sent_tensor)
+    abs_seqs = level1_abstract(rnn_traces=[benign_hn_trace], y_pre=[benign_label_trace[-1]],
+                               partitioner=partitioner,
+                               partitioner_exists=True, partition_type=pt_type)
+    return abs_seqs[0]
 
 
 def save_level1_traces(abs_seqs, output_path):
