@@ -1,115 +1,87 @@
+"""
+path probability based adversary detection
+"""
 import sys
 
 sys.path.append("../../../")
-from level1_abstract.clustering_based import *
-from utils.constant import *
-from utils.help_func import load_pickle, get_auc
-from target_models.model_helper import load_model
-from target_models.model_helper import sent2tensor
+from target_models.model_helper import get_model_file
+from utils.help_func import get_auc
 from experiments.exp_utils import load_dfa, load_partitioner
-
-MIN_PROB = -1e20
-
-
-def prepare_L1_data(k, model_type, data_type, device, data_source, pt_type):
-    input_dim = 300
-    #####################
-    # load partitioner
-    ####################
-    partitioner = load_partitioner(model_type, data_type, pt_type, k, data_source)
-    #############
-    # load data
-    #############
-    raw_data = load_pickle(get_path(getattr(DataPath, data_type.upper()).PROCESSED_DATA))
-    adv_data = load_pickle(get_path(getattr(getattr(Application.AEs, data_type.upper()), model_type.upper())))
-    wv_matrix = load_pickle(get_path(getattr(DataPath, data_type.upper()).WV_MATRIX))
-    word2idx = raw_data["word_to_idx"]
-    ############
-    # load model
-    ############
-    model = load_model(model_type, data_type, device)
-
-    ####################
-    # extract ori trace
-    ###################
-    benign_traces = []
-    adv_traces = []
-    benign_labels = []
-    adv_labels = []
-    for ele in adv_data:
-        idx, adv_x, adv_y = ele
-        benign_x, benign_y = raw_data["test_x"][idx], raw_data["test_y"][idx]
-
-        # benign
-        benign_tensor = sent2tensor(benign_x, input_dim, word2idx, wv_matrix, device)
-        benign_hn_trace, benign_label_trace = model.get_predict_trace(benign_tensor)
-        benign_traces.append(benign_hn_trace)
-        assert benign_y == benign_label_trace[-1]
-        benign_labels.append(benign_y)
-
-        # adv
-        adv_tensor = sent2tensor(adv_x, input_dim, word2idx, wv_matrix, device)
-        adv_hn_trace, adv_label_trace = model.get_predict_trace(adv_tensor)
-        adv_traces.append(adv_hn_trace)
-        assert adv_y == adv_label_trace[-1]
-        adv_labels.append(adv_y)
-
-    #############################
-    # make level1 abstract traces
-    #############################
-    benign_abs_seqs = level1_abstract(rnn_traces=benign_traces, y_pre=benign_labels, partitioner=partitioner,
-                                      partitioner_exists=True)
-    adv_abs_seqs = level1_abstract(rnn_traces=adv_traces, y_pre=adv_labels, partitioner=partitioner,
-                                   partitioner_exists=True)
-
-    return benign_abs_seqs, adv_abs_seqs
+from experiments.application.adv_detect.detect_utils import *
+from experiments.application.adv_detect.textbugger.textbugger_attack import TextBugger
 
 
-def _get_path_prob(traces, trans_func, trans_wfunc):
-    probs = []
-    for seq in traces:
-        assert seq[0] == START_SYMBOL
-        c_id = 1
-        acc_prob = 1.0
-        for sigma in seq[1:]:
-            sigma = str(sigma)
-            if sigma not in trans_wfunc[c_id]:
-                acc_prob = MIN_PROB
-                break
-            else:
-                acc_prob *= trans_wfunc[c_id][sigma]
-                c_id = trans_func[c_id][sigma]
-        # normalize
-        acc_prob = np.log(acc_prob) / len(seq) if acc_prob != MIN_PROB else acc_prob
-        probs.append(acc_prob)
-    return probs
+def get_trans_conf(last_inner, trans_wfunc, label):
+    pprob = trans_wfunc[last_inner]["P"] if "P" in trans_wfunc[last_inner] else 0.001
+    nprob = trans_wfunc[last_inner]["N"] if "N" in trans_wfunc[last_inner] else 0.001
+    if label == "P":
+        return pprob / nprob
+    elif label == "N":
+        return nprob / pprob
+    else:
+        return -1
 
 
-def do_detect(benign_traces, adv_traces, k, model_type, data_type, data_source, total_symbols, pt_type):
+def do_detect(benign_traces, adv_traces, dfa_file_path=STANDARD_PATH):
     # load dfa
-    trans_func, trans_wfunc = load_dfa(model_type, data_type, k, total_symbols, data_source, pt_type)
+    if dfa_file_path == STANDARD_PATH:
+        trans_func, trans_wfunc = load_dfa(_model_type, _data_type, _k, _total_symbols, _data_source, _pt_type)
+    else:
+        dfa = load_pickle(get_path(dfa_file_path))
+        trans_func, trans_wfunc = dict(dfa["trans_func"]), dict(dfa["trans_wfunc"])
 
     # calculate path prob
-    benign_prob = _get_path_prob(benign_traces, trans_func, trans_wfunc)
-    adv_prob = _get_path_prob(adv_traces, trans_func, trans_wfunc)
 
+    b_scores = []
+    for l1_trace in benign_traces:
+        benign_prob, b_l2 = get_path_prob(l1_trace, trans_func, trans_wfunc)
+        score = get_trans_conf(b_l2[-2], trans_wfunc, l1_trace[-1])
+        b_scores.append(score)
+
+    adv_scores = []
+    for l1_trace in adv_traces:
+        adv_prob, adv_l2 = get_path_prob(l1_trace, trans_func, trans_wfunc)
+        score = get_trans_conf(adv_l2[-2], trans_wfunc, l1_trace[-1])
+        adv_scores.append(score)
+
+    auc = get_auc(pos_score=b_scores, neg_score=adv_scores)
     # transition undefined
-    b_break = len(np.where(np.array(benign_prob) == MIN_PROB)[0])
-    adv_break = len(np.where(np.array(adv_prob) == MIN_PROB)[0])
-    print("b_break:{},adv_break:{}".format(b_break, adv_break))
-    auc = get_auc(pos_score=benign_prob, neg_score=adv_prob)
     return auc
 
 
 if __name__ == '__main__':
     _device = "cpu"
-    _model_type = ModelType.LSTM
+    # _data_type = DateSet.MR
+    # _model_type = ModelType.GRU
+    # _total_symbols = 141953
+
     _data_type = DateSet.MR
-    _data_source = "test"
-    _total_symbols = "49056"
-    _pt_type = "hc"
-    for _k in range(10, 22, 2):
-        benign_abs_seqs, adv_abs_seqs = prepare_L1_data(_k, _model_type, _data_type, _device, _data_source, _pt_type)
-        auc = do_detect(benign_abs_seqs, adv_abs_seqs, _k, _model_type, _data_type, _data_source, _total_symbols,
-                        _pt_type)
+    _model_type = ModelType.GRU
+    _total_symbols = 107355
+
+
+    _pt_type = PartitionType.KM
+    # _data_source = "test"
+    _data_source = "train"
+    adv_bug_mod = TextBugger.SUB_W
+    _use_clean = True
+    model_file = get_model_file(_data_type, _model_type)
+    _model_path = TrainedModel.NO_STOPW.format(_data_type, _model_type, model_file)
+    _adv_path = Application.AEs.NO_STOPW.format(_data_type, _model_type, adv_bug_mod)
+
+    alpha = 64
+    for _k in range(2, 22, 2):
+        pt_path = AbstractData.Level1.NO_STOPW.format(_data_type, _model_type, _k, _data_source + "_partition.pkl")
+        _dfa_file_path = AbstractData.Level2.NO_STOPW.format(_data_type, _model_type, _k, alpha)
+        _dfa_file_path = os.path.join(_dfa_file_path, "{}_{}_transfunc.pkl").format(_data_source, _total_symbols)
+        #####################
+        # load partitioner
+        ####################
+        if pt_path == STANDARD_PATH:
+            partitioner = load_partitioner(_model_type, _data_type, _pt_type, _k, _data_source)
+        else:
+            partitioner = load_pickle(pt_path)
+        benign_abs_seqs, adv_abs_seqs = prepare_L1_data(_model_type, _data_type, _device, partitioner, _pt_type,
+                                                        adv_bug_mod, _model_path, _adv_path, _use_clean)
+        auc = do_detect(benign_abs_seqs, adv_abs_seqs, _dfa_file_path)
         print("k={}, auc:{:.4f}".format(_k, auc))
