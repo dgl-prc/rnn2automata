@@ -1,2 +1,2 @@
-P = ? [true U<=10000 "LN"]
-P = ? [true U<=10000 "LP"]
+P = ? [true U<=1000 "LN"]
+P = ? [true U<=1000 "LP"]
