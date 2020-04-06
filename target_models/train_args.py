@@ -23,15 +23,14 @@ def args_lstm_imdb():
     params = {
         "input_size": 300,
         "output_size": 2,
-        "hidden_size": 10,
-        "num_layers": 3,
+        "hidden_size": 512,
+        "num_layers": 1,
         "LEARNING_RATE": 0.01,
         "min_acc": 0.9999,
         "EPOCH": 100,
         "EARLY_STOPPING": False,
     }
     return params
-
 
 def args_gru_imdb():
     return args_lstm_mr()
