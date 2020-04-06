@@ -39,7 +39,7 @@ def _prepare_prism_data(pm_file, num_prop):
             with open(os.path.join(tmp_data_path, file_name), "w") as fw:
                 fw.writelines(raw_pm_lines)
     print("Total states:{}".format(total_states))
-    print("Model-check files saved in {}".format(tmp_data_path))
+    # print("Model-check files saved in {}".format(tmp_data_path))
     return total_states, tmp_data_path
 
 
@@ -83,5 +83,5 @@ def reachability_matrix(pm_file, num_prop):
     # remove the prepared files
     ##################################
     shutil.rmtree(tmp_data_path)
-    print("Removed temp files in {}".format(tmp_data_path))
+    # print("Removed temp files in {}".format(tmp_data_path))
     return matrix
