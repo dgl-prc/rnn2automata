@@ -9,6 +9,7 @@ PROPERTY_FILE = "experiments/application/find_important_words/properties.pctl"
 START_SYMBOL = 'S'
 STANDARD_PATH = "STANDARD"
 
+
 class PartitionType:
     KM = "km"  # kmeans
     KMP = "kmp"  # kmeans based on probas
@@ -22,6 +23,14 @@ def get_path(r_path):
 class DateSet:
     IMDB = "imdb"
     MR = "mr"
+    BP = "bp"
+    Tomita1 = 1
+    Tomita2 = 2
+    Tomita3 = 3
+    Tomita4 = 4
+    Tomita5 = 5
+    Tomita6 = 6
+    Tomita7 = 7
 
 
 class ModelType:
@@ -31,6 +40,14 @@ class ModelType:
 
 
 class DataPath:
+    class BP:
+        PROCESSED_DATA = "data/training_data/bp/bp.pkl"
+        WV_MATRIX = "data/training_data/bp/bp_wv_matrix.pkl"
+
+    class TOMITA:
+        PROCESSED_DATA = "data/training_data/tomita/tomita_{}/tomita_{}.pkl"
+        WV_MATRIX = "data/training_data/tomita/tomita_{}/tomita_{}_wv_matrix.pkl"
+
     class IMDB:
         RAW_DATA = "data/training_data/imdb/raw"
         PROCESSED_DATA = "data/training_data/imdb/processed_imdb.pkl"

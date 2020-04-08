@@ -72,5 +72,5 @@ def pm2pic(pm_file_path):
 
 if __name__ == '__main__':
     # file_path = get_path("experiments/application/no_stopws/l2_results/lstm_mr_k2_alpha_64_107563.pm")
-    file_path = "/Users/dong/GitHub/learn_automata_rnn/experiments/application/no_stopws/l2_results/lstm_mr_k2_alpha_64_107563.pm"
+    file_path = "/Users/dong/GitHub/learn_automata_rnn/data/no_stopws/L2_results/mr/lstm/k=2/alpha=64/train_107355.pm"
     pm2pic(file_path)
