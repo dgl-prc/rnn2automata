@@ -1,12 +1,14 @@
 import re
 import numpy as np
 from nltk.corpus import stopwords
+from sklearn.model_selection import train_test_split
 import nltk
 
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 special_symbols = set({",", ".", ";", "!", ":", '"', "'", "(", ")", "{", "}", "--"})
 STOP_WORDS = stop_words | special_symbols
+
 
 def filter_stop_words(sent):
     """
@@ -15,6 +17,7 @@ def filter_stop_words(sent):
     sent: list.
     """
     return [word for word in sent if word not in STOP_WORDS]
+
 
 def clean_data_for_look(text):
     REPLACE_BY_SPACE_RE = re.compile('[/{}\[\]\|@#*]')
@@ -38,10 +41,24 @@ def clean_data_for_look(text):
     text = REDUCE_REPEATED_SPACE_RE.sub(' ', text)
     return text.strip()
 
-def set_data(x, y, test_idx):
+
+# def set_data(x, y, test_idx):
+#     data = {}
+#     data["train_x"], data["train_y"] = x[:test_idx], y[:test_idx]
+#     data["test_x"], data["test_y"] = x[test_idx:], y[test_idx:]
+#     data["vocab"] = sorted(list(set([w for sent in data["train_x"] + data["test_x"] for w in sent])))
+#     data["classes"] = sorted(list(set(data["train_y"])))
+#     data["word_to_idx"] = {w: i for i, w in enumerate(data["vocab"])}
+#     data["idx_to_word"] = {i: w for i, w in enumerate(data["vocab"])}
+#     return data
+
+def set_data(X, Y, test_size=0.2, random_state=2020):
     data = {}
-    data["train_x"], data["train_y"] = x[:test_idx], y[:test_idx]
-    data["test_x"], data["test_y"] = x[test_idx:], y[test_idx:]
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=test_size, random_state=random_state)
+    data["train_x"] = X_train
+    data["train_y"] = y_train
+    data["test_x"] = X_test
+    data["test_y"] = y_test
     data["vocab"] = sorted(list(set([w for sent in data["train_x"] + data["test_x"] for w in sent])))
     data["classes"] = sorted(list(set(data["train_y"])))
     data["word_to_idx"] = {w: i for i, w in enumerate(data["vocab"])}
