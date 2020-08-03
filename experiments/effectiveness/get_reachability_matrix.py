@@ -1,14 +1,16 @@
 import sys
+
 sys.path.append("../../../")
 import re
 import subprocess
 import shutil
 import numpy as np
+import random
 from utils.constant import *
 from utils.time_util import folder_timestamp
 
 
-def _prepare_prism_data(pm_file, num_prop):
+def prepare_prism_data(pm_file, num_prop):
     ''' The task of this func is to 1) make every state the initial state.
                                     2) change the label name.
 
@@ -17,8 +19,9 @@ def _prepare_prism_data(pm_file, num_prop):
     :return:
     '''
     ROOT_FOLDER = os.getcwd()
+    random_id = str(random.randint(1000, 10000))
     folder_id = folder_timestamp()
-    tmp_data_path = os.path.join(ROOT_FOLDER, folder_id)
+    tmp_data_path = os.path.join(ROOT_FOLDER, folder_id+"_"+random_id)
     os.makedirs(tmp_data_path)
     with open(pm_file, "r") as fr:
         raw_pm_lines = fr.readlines()
@@ -38,7 +41,6 @@ def _prepare_prism_data(pm_file, num_prop):
             raw_pm_lines[3] = "s:[1..{}] init {};\n".format(total_states, start_s)
             with open(os.path.join(tmp_data_path, file_name), "w") as fw:
                 fw.writelines(raw_pm_lines)
-    print("Total states:{}".format(total_states))
     # print("Model-check files saved in {}".format(tmp_data_path))
     return total_states, tmp_data_path
 
@@ -53,13 +55,18 @@ def _get_reachability_prob(prism_script, data_path, start_s, prop_id):
     return rst
 
 
+def get_state_reachability(tmp_prism_data_path, num_prop, start_s):
+    row = []
+    for pro_id in range(1, num_prop + 1):  # must be 1-index
+        ele = _get_reachability_prob(PRISM_SCRIPT, tmp_prism_data_path, start_s, pro_id)
+        row.append(ele)
+    return row
+
+
 def _get_matrix(total_states, num_prop, tmp_prism_data_path):
     matrix = []
     for start_s in range(1, total_states + 1):
-        row = []
-        for pro_id in range(1, num_prop + 1):  # must be 1-index
-            ele = _get_reachability_prob(PRISM_SCRIPT, tmp_prism_data_path, start_s, pro_id)
-            row.append(ele)
+        row = get_state_reachability(tmp_prism_data_path, num_prop, start_s)
         matrix.append(row)
     matrix = np.array(matrix)
     return matrix
@@ -77,7 +84,7 @@ def reachability_matrix(pm_file, num_prop):
     ##################################
     # prepare the pair of input files
     ##################################
-    num_states, tmp_data_path = _prepare_prism_data(pm_file, num_prop)
+    num_states, tmp_data_path = prepare_prism_data(pm_file, num_prop)
     matrix = _get_matrix(num_states, num_prop, tmp_data_path)
     ##################################
     # remove the prepared files

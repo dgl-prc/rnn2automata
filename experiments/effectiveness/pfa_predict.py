@@ -2,8 +2,8 @@
 predict with the L1 trace.
 """
 import sys
+
 import shutil
-import time
 
 sys.path.append("../../")
 from target_models.model_helper import get_model_file, get_input_dim
@@ -12,36 +12,70 @@ from data.text_utils import is_use_clean
 from experiments.rq1.get_reachability_matrix import prepare_prism_data, get_state_reachability
 
 
-def test_acc_fdlt(test_X, test_Y, model, partitioner, dfa, tmp_prims_data, word2idx, wv_matrix, use_clean=True,
-                  input_dim=300,
-                  device="cpu", pt_type=PartitionType.KM):
+def load_dfa_kits(data_type, model_type, k, data_source, total_symbols, alpha):
+    pt_path = AbstractData.Level1.NO_STOPW.format(data_type, model_type, k,
+                                                  data_source + "_partition.pkl")
+    dfa_file_path = AbstractData.Level2.NO_STOPW.format(data_type, model_type, k, alpha)
+    trans_func_file = os.path.join(dfa_file_path, "{}_{}_transfunc.pkl").format(data_source,
+                                                                                total_symbols)
+    pm_file_path = os.path.join(dfa_file_path, "{}_{}.pm").format(data_source,
+                                                                  total_symbols)
+    partitioner = load_pickle(pt_path)
+    dfa = load_pickle(get_path(trans_func_file))
+    # make reachability matrix
+    total_states, tmp_prims_data = prepare_prism_data(pm_file_path, num_prop=2)
+    return dfa, partitioner, total_states, tmp_prims_data
+
+
+def extract_l1_trace(x, model, input_dim, word2idx, wv_matrix, device, partitioner, pt_type, use_clean):
+    if use_clean:
+        x = filter_stop_words(x)
+    x_tensor = sent2tensor(x, input_dim, word2idx, wv_matrix, device)
+    hn_trace, label_trace = model.get_predict_trace(x_tensor)
+    rnn_pred = label_trace[-1]
+    L1_trace = level1_abstract(rnn=None, rnn_traces=[hn_trace], y_pre=[rnn_pred],
+                               partitioner=partitioner,
+                               partitioner_exists=True, partition_type=pt_type)[0]
+    return L1_trace
+
+
+def test_acc_fdlt(**kwargs):
+    test_X = kwargs["X"]
+    test_Y = kwargs["Y"]
+    dfa = kwargs["dfa"]
+    tmp_prims_data = kwargs["tmp_prims_data"]
+    if kwargs["input_type"] == "text":
+        model = kwargs["model"]
+        partitioner = kwargs["partitioner"]
+        word2idx = kwargs["word2idx"]
+        wv_matrix = kwargs["wv_matrix"]
+        use_clean = kwargs["use_clean"]
+        input_dim = kwargs["input_dim"]
+        device = kwargs["device"]
+        pt_type = kwargs["pt_type"]
+        is_text = True
+    else:
+        is_text = False
     trans_func, trans_wfunc = dict(dfa["trans_func"]), dict(dfa["trans_wfunc"])
     acc = 0
     fdlt = 0
     unspecified = 0
-    reachab_chache = {}
+    pmc_cache = {}
     for x, y in zip(test_X, test_Y):
-        if use_clean:
-            x = filter_stop_words(x)
-        x_tensor = sent2tensor(x, input_dim, word2idx, wv_matrix, device)
-        hn_trace, label_trace = model.get_predict_trace(x_tensor)
-        rnn_pred = label_trace[-1]
-        L1_trace = level1_abstract(rnn=None, rnn_traces=[hn_trace], y_pre=[rnn_pred],
-                                   partitioner=partitioner,
-                                   partitioner_exists=True, partition_type=pt_type)[0]
+        if is_text:
+            L1_trace = extract_l1_trace(x, model, input_dim, word2idx, wv_matrix, device, partitioner, pt_type,
+                                        use_clean)
+        else:
+            L1_trace = x
+        rnn_pred = 0 if L1_trace[-1] == 'N' else 1
         _, L2_trace = get_path_prob(L1_trace, trans_func, trans_wfunc)
         last_inner = L2_trace[-2]
-        pprob = trans_wfunc[last_inner]["P"] if "P" in trans_wfunc[last_inner] else 0
-        nprob = trans_wfunc[last_inner]["N"] if "N" in trans_wfunc[last_inner] else 0
-        if (pprob + nprob) == 0:
-            if last_inner in reachab_chache:
-                probs = reachab_chache[last_inner]
-            else:
-                probs = get_state_reachability(tmp_prims_data, num_prop=2, start_s=last_inner)
-                reachab_chache[last_inner] = probs
-            pfa_pred = np.argmax(probs)
+        if last_inner in pmc_cache:
+            probs = pmc_cache[last_inner]
         else:
-            pfa_pred = np.argmax([nprob, pprob])
+            probs = get_state_reachability(tmp_prims_data, num_prop=2, start_s=last_inner)
+            pmc_cache[last_inner] = probs
+        pfa_pred = np.argmax(probs)
         if pfa_pred == y:
             acc += 1
         if pfa_pred == rnn_pred:
@@ -52,25 +86,11 @@ def test_acc_fdlt(test_X, test_Y, model, partitioner, dfa, tmp_prims_data, word2
 
 
 if __name__ == '__main__':
-    # _data_type = DateSet.IMDB
-    # _model_type = ModelType.LSTM
-    # _total_symbols = 141953
-    ##############################
-    # _data_type = DateSet.MR
-    # _model_type = ModelType.LSTM
-    # _total_symbols = 107355
-    ###############################
-    # _data_type = DateSet.BP
-    # _model_type = ModelType.LSTM
-    # _total_symbols = 54044
-    ##############################
-
-    # for _data_type in [DateSet.Tomita6, DateSet.Tomita7]:
-    #     for _model_type in [ModelType.GRU, ModelType.LSTM]:
     test_on = "test_{}"
-    for _data_type in [DateSet.Tomita7]:
-        for _model_type in [ModelType.GRU]:
-            # for _model_type in [ModelType.GRU, ModelType.LSTM]:
+    for _data_type in [DateSet.BP, DateSet.Tomita1, DateSet.Tomita2, DateSet.Tomita3,
+                       DateSet.Tomita4, DateSet.Tomita5, DateSet.Tomita6, DateSet.Tomita7,
+                       DateSet.MR, DateSet.IMDB]:
+        for _model_type in [ModelType.LSTM, ModelType.GRU]:
             print(_data_type.upper(), _model_type.upper())
             _total_symbols = get_total_symbols(_data_type)
             _device = "cpu"
@@ -96,7 +116,8 @@ if __name__ == '__main__':
                 wv_matrix = load_pickle(get_path(getattr(DataPath, _data_type.upper()).WV_MATRIX))
 
             # for _k in range(61, 66, 1):
-            for _k in [64]:
+            # for _k in range(2, 12, 2):
+            for _k in [6]:
                 pt_path = AbstractData.Level1.NO_STOPW.format(_data_type, _model_type, _k,
                                                               _data_source + "_partition.pkl")
                 dfa_file_path = AbstractData.Level2.NO_STOPW.format(_data_type, _model_type, _k, alpha)
@@ -108,9 +129,6 @@ if __name__ == '__main__':
                 dfa = load_pickle(get_path(trans_func_file))
                 # make reachability matrix
                 total_states, tmp_prims_data = prepare_prism_data(pm_file_path, num_prop=2)
-                if total_states > 100:
-                    shutil.rmtree(tmp_prims_data)
-                    break
                 acc, fdlt, unspecified = test_acc_fdlt(data[test_on.format('x')], data[test_on.format('y')], model,
                                                        partitioner, dfa,
                                                        tmp_prims_data,
