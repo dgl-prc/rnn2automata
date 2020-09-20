@@ -1,13 +1,8 @@
+# Introduction
+Implementatino of paper "Towards Interpreting Recurrent Neural Networks through Probabilistic Abstraction" in ASE 2020.
 
-
-
-
-
-
-# PFA  Manual
-
-[toc]
-
+Code in this repository will be cleaned and this REDME file will be updated. 
+The new version of this repository is coming soon...
 
 
 ## Project structure
