@@ -50,7 +50,7 @@ def make_L1_abs_trace(labels, seq_len, y_pre):
     for size, y in zip(seq_len, y_pre):
         abs_trace = labels[start_p:start_p + size]
         term_symbol = get_term_symbol(y)
-        abs_trace = [START_SYMBOL] + abs_trace + [term_symbol]
+        abs_trace = [START_SYMBOL] + [str(e) for e in abs_trace] + [term_symbol]
         abs_seqs.append(abs_trace)
         start_p += size
     return abs_seqs

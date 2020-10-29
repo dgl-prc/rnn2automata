@@ -1,12 +1,12 @@
 from target_models.model_training import sent2tensor
-from target_models.model_helper import load_model
+from target_models.model_helper import load_model, get_input_dim
 from utils.help_func import *
 from utils.constant import *
-from data.text_utils import filter_stop_words
+from data.text_utils import filter_stop_words,STOP_WORDS
 
 
 def make_ori_trace(model_type, dataset, device, use_clean=False, path_mode=STANDARD_PATH,
-                   load_model_path=STANDARD_PATH):
+                   model_path=STANDARD_PATH):
     """
 
     model_type:
@@ -15,13 +15,19 @@ def make_ori_trace(model_type, dataset, device, use_clean=False, path_mode=STAND
     use_clean: bool if true then filter the stop words, or keep the stop words
     :return:
     """
-    data = load_pickle(get_path(getattr(DataPath, dataset.upper()).PROCESSED_DATA))
+    input_dim = get_input_dim(dataset)
+
+    if dataset.startswith("tomita"):
+        gram_id = int(dataset[-1])
+        data = load_pickle(get_path(getattr(DataPath, "TOMITA").PROCESSED_DATA).format(gram_id, gram_id))
+        wv_matrix = load_pickle(get_path(getattr(DataPath, "TOMITA").WV_MATRIX).format(gram_id, gram_id))
+        model = load_model(model_type, "tomita", device=device, load_model_path=model_path)
+    else:
+        model = load_model(model_type, dataset, device=device, load_model_path=model_path)
+        data = load_pickle(get_path(getattr(DataPath, dataset.upper()).PROCESSED_DATA))
+        wv_matrix = load_pickle(get_path(getattr(DataPath, dataset.upper()).WV_MATRIX))
+
     word2idx = data["word_to_idx"]
-    wv_matrix = load_pickle(get_path(getattr(DataPath, dataset.upper()).WV_MATRIX))
-    input_dim = 300
-
-    model = load_model(model_type, dataset, device, load_model_path)
-
     ori_traces = {}
     ori_traces["train_x"] = []
     ori_traces["test_x"] = []
@@ -50,4 +56,4 @@ def make_ori_trace(model_type, dataset, device, use_clean=False, path_mode=STAND
         save_path = path_mode
 
     save_pickle(save_path, ori_traces)
-    print("Saved!")
+    print("Saved to {}".format(save_path))

@@ -56,10 +56,68 @@ def get_model_file(data_type, model_type):
             assert model_type == ModelType.GRU
             # model_file = "train_acc-0.7813-test_acc-0.7840.pkl"
             model_file = "train_acc-0.8096-test_acc-0.7732.pkl"
-    else:
+    elif data_type == DateSet.IMDB:
         if model_type == ModelType.LSTM:
             model_file = "train_acc-0.8807-test_acc-0.8435.pkl"
         else:
             assert model_type == ModelType.GRU
             model_file = "train_acc-0.8836-test_acc-0.8424.pkl"
+    elif data_type == DateSet.BP:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-0.9992-test_acc-1.0000.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-0.9990-test_acc-0.9990.pkl"
+    elif data_type == DateSet.Tomita1:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-0.9904-test_acc-0.9872.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-0.9920-test_acc-0.9872.pkl"
+    elif data_type == DateSet.Tomita2:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-0.9967-test_acc-0.9938.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-0.9978-test_acc-0.9938.pkl"
+    elif data_type == DateSet.Tomita3:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-1.0000-test_acc-0.9986.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-0.9990-test_acc-0.9986.pkl"
+    elif data_type == DateSet.Tomita4:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-0.9990-test_acc-1.0000.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-1.0000-test_acc-1.0000.pkl"
+    elif data_type == DateSet.Tomita5:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-0.7347-test_acc-0.7452.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-0.7373-test_acc-0.7539.pkl"
+    elif data_type == DateSet.Tomita6:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-0.6534-test_acc-0.6399.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-0.6463-test_acc-0.6420.pkl"
+    elif data_type == DateSet.Tomita7:
+        if model_type == ModelType.LSTM:
+            model_file = "train_acc-0.9951-test_acc-1.0000.pkl"
+        else:
+            assert model_type == ModelType.GRU
+            model_file = "train_acc-0.9934-test_acc-1.0000.pkl"
+    else:
+        model_file = "unknown"
     return model_file
+
+
+def get_input_dim(data_set):
+    if data_set == DateSet.BP:
+        return 29
+    if data_set.startswith("tomita"):
+        return 3
+    return 300

@@ -3,6 +3,43 @@ def add_data_info(data, params):
     params["VOCAB_SIZE"] = len(data["vocab"])
     params["CLASS_SIZE"] = len(data["classes"])
 
+
+def args_lstm_bp():
+    params = {
+        "input_size": 29,
+        "output_size": 2,
+        "hidden_size": 512,
+        "num_layers": 1,
+        "LEARNING_RATE": 0.01,
+        "min_acc": 0.9999,
+        "EPOCH": 200,
+        "EARLY_STOPPING": False,
+    }
+    return params
+
+
+def args_gru_bp():
+    return args_lstm_bp()
+
+def args_lstm_tomita():
+    params = {
+        "input_size": 3,
+        "output_size": 2,
+        "hidden_size": 512,
+        "num_layers": 1,
+        # "hidden_size": 100,
+        # "num_layers": 2,
+        "LEARNING_RATE": 0.01,
+        "min_acc": 0.9999,
+        "EPOCH": 200,
+        "EARLY_STOPPING": False,
+    }
+    return params
+
+def args_gru_tomita():
+    return args_lstm_tomita()
+
+
 def args_lstm_mr():
     params = {
         "input_size": 300,
@@ -16,8 +53,10 @@ def args_lstm_mr():
     }
     return params
 
+
 def args_gru_mr():
     return args_lstm_mr()
+
 
 def args_lstm_imdb():
     params = {
@@ -32,8 +71,10 @@ def args_lstm_imdb():
     }
     return params
 
+
 def args_gru_imdb():
     return args_lstm_mr()
+
 
 def args_lstm_spam():
     params = {
@@ -47,6 +88,7 @@ def args_lstm_spam():
         "EARLY_STOPPING": False,
     }
     return params
+
 
 def args_gru_spam():
     return args_lstm_mr()

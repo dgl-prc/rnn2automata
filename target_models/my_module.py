@@ -1,6 +1,6 @@
-
 import torch.nn as nn
 import torch
+
 '''
         This model enable both batch training and no-batch training.
         The "forward" fun only return the result of hidden states,and DO NOT
@@ -10,9 +10,11 @@ import torch
         The "get_predict_trace" fun is designed to gain the inner hidden state as well as the classification
         result based on the hidden state at each time step
 '''
+
+
 class MyModule(nn.Module):
 
-    def classify_word(self,word):
+    def classify_word(self, word):
         '''
         returns a True or False classification for a word over the input alphabet
         :param word: e.g., "00011001", "I love you"
@@ -27,7 +29,7 @@ class MyModule(nn.Module):
         '''
         pass
 
-    def get_next_RState(self,state,char):
+    def get_next_RState(self, state, char):
         '''
         returns a continuous vector representation of the network's initial state (an RState, as a list of floats)
         :param state:
@@ -45,7 +47,6 @@ class MyModule(nn.Module):
         logits = self.h2o(hidden_states)
         pr_dstr = self.softmax(logits)
         return pr_dstr
-
 
     def get_predict_trace(self, input_sequences):
         '''

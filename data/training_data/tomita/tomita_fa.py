@@ -412,7 +412,7 @@ class Tomita_6(Tomita):
                 if a <= l:
                     b = l - a
                     break
-        return a, b
+        return int(a), int(b)
 
     def generatePos(self, l, exclude_set, max_iters):
         pos_seq = ""

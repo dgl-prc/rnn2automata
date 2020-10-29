@@ -54,23 +54,51 @@ def pm2pic(pm_file_path):
     ##############
     f = Digraph('finite_state_machine', filename='fsm.gv')
     f.attr(rankdir='LR', size='8,5')
-    f.attr('node', shape='doublecircle')
-    
+
     # make init and final node
     f.attr('node', shape='doublecircle')
-    f.node(init_node.strip())
     for node in final_nodes:
         f.node(node.strip())
 
+    f.attr('node', shape='none')
+    f.node('')
     # inner states
     f.attr('node', shape='circle')
     for edge in edges:
         new_label = "{:.4f}/{}".format(edge[-1], state2label[edge[1]])
         f.edge(edge[0].strip(), edge[1].strip(), label=new_label)
-
+    # add an arrow from nowhere
+    f.edge('', '1', label='')
     f.view()
+
+
+
+def ase20_ppt():
+    f = Digraph('finite_state_machine', filename='ppt.gv')
+    f.attr(rankdir='LR', size='8,5')
+
+    # make init and final node
+    f.attr('node', shape='doublecircle')
+    f.node('b')
+    f.node('ab')
+    f.node('aa')
+
+    f.attr('node', shape='none')
+    f.node('')
+    # inner states
+    f.attr('node', shape='circle')
+    # add an arrow from nowhere
+    f.edge('', 's', label='')
+    f.edge('s', 'a', label='a/0.8')
+    f.edge('s', 'b', label='b/0.2')
+    f.edge('a', 'a', label='a/0.125')
+    f.edge('a', 'aa', label='a/0.625')
+    f.edge('a', 'ab', label='b/0.25')
+    f.view()
+
 
 if __name__ == '__main__':
     # file_path = get_path("experiments/application/no_stopws/l2_results/lstm_mr_k2_alpha_64_107563.pm")
-    file_path = "/Users/dong/GitHub/learn_automata_rnn/data/no_stopws/L2_results/mr/lstm/k=2/alpha=64/train_107355.pm"
-    pm2pic(file_path)
+    # file_path = "/Users/dong/Documents/Bitbucket/pfa001/document/ASE20/RQ/train_107355.pm"
+    # pm2pic(file_path)
+    ase20_ppt()

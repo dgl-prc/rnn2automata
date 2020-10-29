@@ -140,28 +140,39 @@ class AALERGIA():
         Note that:
             1. len(id2parents) == len(id2children) + size(leaf nodes). since the leaf node has no children.
             2. len(id2children) == len(id2actions)
-
         Parameters.
         -------------
         '''
         # build transition matrix
         trans_func = defaultdict(defaultdict)
+        trans_wfunc = defaultdict(defaultdict)
         # id2children = A[ID2CHILDREN]
         # state_labels = A[ID2FREQ]
         # assert len(id2children)==len(id2actions) and len(id2children) == len(id2parents)
+
         for id in self.id2children:
             actions = self.id2actions[id]
             children = self.id2children[id]
             for action, child in zip(actions, children):
                 trans_func[id][action] = child
-        # build transition weight matrix
-        trans_wfunc = defaultdict(defaultdict)
-        for id in self.id2children:
-            actions = self.id2actions[id]
-            children = self.id2children[id]
-            for action, child in zip(actions, children):
+                # build transition weight matrix
                 fre = self.prefix2freq[self.id2prefix[child]]
                 trans_wfunc[id][action] = fre
+
+        # for id in self.id2children:
+        #     actions = self.id2actions[id]
+        #     children = self.id2children[id]
+        #     for action, child in zip(actions, children):
+        #         trans_func[id][action] = child
+        # # build transition weight matrix
+        # trans_wfunc = defaultdict(defaultdict)
+        # for id in self.id2children:
+        #     actions = self.id2actions[id]
+        #     children = self.id2children[id]
+        #     for action, child in zip(actions, children):
+        #         fre = self.prefix2freq[self.id2prefix[child]]
+        #         trans_wfunc[id][action] = fre
+
         return dict(trans_func), dict(trans_wfunc)
 
     def makePDFA(self):
@@ -306,7 +317,7 @@ class AALERGIA():
         return children
 
     def learn(self):
-        '''
+        ''' The learning process is actually a process that to refine the transition matrix
         :return:
         '''
         dffa = {}
@@ -363,26 +374,6 @@ class AALERGIA():
         dffa[STWM] = new_trans_wfunc
         return dffa
 
-    # def pretty_look(self, trans_func, trans_wfunc):
-    #
-    #     new_trans_func = np.zeros((len(self.prefix), len(self.alphabet)), dtype=int) + -1
-    #     for prefix_id in trans_func:
-    #         for symbol_id in range(len(self.alphabet)):
-    #             symbol = self.id2alphabet[symbol_id]
-    #             if symbol in trans_func[prefix_id]:
-    #                 new_trans_func[prefix_id][symbol_id] = trans_func[prefix_id][symbol]
-    #             else:
-    #                 new_trans_func[prefix_id][symbol_id] = -1
-    #     new_trans_wfunc = np.zeros((len(self.prefix), len(self.alphabet)), dtype=int)
-    #     for prefix_id in trans_wfunc:
-    #         for symbol_id in range(len(self.alphabet)):
-    #             symbol = self.id2alphabet[symbol_id]
-    #             if symbol in trans_wfunc[prefix_id]:
-    #                 new_trans_wfunc[prefix_id][symbol_id] = trans_wfunc[prefix_id][symbol]
-    #             else:
-    #                 new_trans_wfunc[prefix_id][symbol_id] = 0
-    #     return new_trans_func, new_trans_wfunc
-
     def _get_valid_states(self, trans_func):
         valid_states = set()
         for s_id in trans_func:
@@ -405,7 +396,7 @@ class AALERGIA():
         valid_states = self._get_valid_states(trans_func)
         old_ids = list(valid_states)
         old_ids.sort(key=lambda x: int(x))
-        total_states = len(old_ids)
+        self.total_states = len(old_ids)
         id2newId = {}
         for new_id, old_id in enumerate(old_ids):
             id2newId[old_id] = new_id + 1  # 1-index
@@ -414,7 +405,7 @@ class AALERGIA():
         lines.append("dtmc\n")
         lines.append("\n")
         lines.append("module {}\n".format(pm_file))
-        lines.append("s:[1..{}] init 1;\n".format(total_states))
+        lines.append("s:[1..{}] init 1;\n".format(self.total_states))
 
         new_trans_func = defaultdict(defaultdict)
         new_trans_wfunc = defaultdict(defaultdict)
@@ -457,9 +448,10 @@ class AALERGIA():
             f.writelines(lines)
 
         with open(trans_func_path, "wb") as f:
-            automata = {"trans_func": dict(new_trans_func), "trans_wfunc": dict(new_trans_wfunc)}
-            pickle.dump(automata, f)
+            pfa = {"trans_func": dict(new_trans_func), "trans_wfunc": dict(new_trans_wfunc)}
+            pickle.dump(pfa, f)
 
-        print("final model size:{}".format(total_states))
+        print("final model size:{}".format(self.total_states))
         print("Prism model saved in {}".format(pm_path))
         print("Transition Function saved in {}".format(trans_func_path))
+        return pfa, pm_path

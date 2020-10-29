@@ -1,5 +1,6 @@
 from utils.constant import *
 
+
 def get_L1_data_path(partition_type, model_type, data_type, data_source, k):
     L1_data_path = getattr(AbstractData.Level1, partition_type.upper())
     L1_data_path = getattr(getattr(L1_data_path, model_type.upper()), data_type.upper())

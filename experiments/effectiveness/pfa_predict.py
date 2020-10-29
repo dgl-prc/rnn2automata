@@ -7,9 +7,9 @@ import shutil
 
 sys.path.append("../../")
 from target_models.model_helper import get_model_file, get_input_dim
-from experiments.rq4.adv_detect.detect_utils import *
+from experiments.application.adv_detect.detect_utils import *
 from data.text_utils import is_use_clean
-from experiments.rq1.get_reachability_matrix import prepare_prism_data, get_state_reachability
+from experiments.effectiveness.get_reachability_matrix import prepare_prism_data, get_state_reachability
 
 
 def load_dfa_kits(data_type, model_type, k, data_source, total_symbols, alpha):

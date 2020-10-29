@@ -11,7 +11,7 @@ from target_models.model_helper import sent2tensor, init_model
 from utils.constant import *
 from utils.time_util import *
 from utils.help_func import load_pickle, save_model, save_readme
-from data.text_utils import filter_stop_words
+from data.text_utils import filter_stop_words, is_use_clean
 
 
 def test(data, model, params, mode="test", device="cuda:0"):
@@ -35,14 +35,13 @@ def test(data, model, params, mode="test", device="cuda:0"):
     return acc / len(X)
 
 
-def train(data, params):
-    model = init_model(params)
+def train(model, data, params):
     device = params["device"]
     model = model.to(device)
     optimizer = optim.Adadelta(model.parameters(), params["LEARNING_RATE"])
     criterion = nn.CrossEntropyLoss()
-    pre_test_acc = 0
-    max_test_acc = 0
+    pre_metric_acc = 0
+    max_metric_acc = 0
     for e in range(params["EPOCH"]):
         data["train_x"], data["train_y"] = shuffle(data["train_x"], data["train_y"])
         i = 0
@@ -63,44 +62,53 @@ def train(data, params):
             if i % 500 == 0:
                 print("Train Epoch: {} [{}/{}]\tLoss: {:.6f}".format(e + 1, i + 1, len(data["train_x"]), loss))
             i += 1
+        train_acc = test(data, model, params, mode="train", device=device)
         test_acc = test(data, model, params, mode="test", device=device)
-        print("epoch:", e + 1, "/ test_acc:", test_acc)
-        if params["EARLY_STOPPING"] and test_acc <= pre_test_acc:
+        print("{}\tepoch:{}\ttrain_acc:{:.4f}\ttest_acc:{:.4f}".format(current_timestamp(), e + 1, train_acc,
+                                                                       test_acc))
+        metric_acc = (test_acc + train_acc) / 2
+        if params["EARLY_STOPPING"] and metric_acc <= pre_metric_acc:
             print("early stopping by dev_acc!")
             break
         else:
-            pre_test_acc = test_acc
-        if test_acc > max_test_acc:
-            max_test_acc = test_acc
+            pre_metric_acc = metric_acc
+        if metric_acc >= max_metric_acc:
+            max_metric_acc = metric_acc
             best_model = copy.deepcopy(model)
             best_model.i2h.flatten_parameters()
-    max_train_acc = test(data, best_model, params, mode="train", device=device)
-    print("train_acc:{0:.4f}, test acc:{1:.4f}".format(max_train_acc, max_test_acc))
-    return best_model, max_train_acc, max_test_acc
+    best_train_acc = test(data, best_model, params, mode="train", device=device)
+    best_test_acc = test(data, best_model, params, mode="test", device=device)
+    last_train_acc = test(data, model, params, mode="train", device=device)
+    print("train_acc:{:.4f}, test acc:{:.4f}, last_train_acc:{}".format(best_train_acc, best_test_acc, last_train_acc))
+    return best_model, best_train_acc, best_test_acc
 
 
 def main():
     dataset = sys.argv[1]
     model_type = sys.argv[2]
     gpu = int(sys.argv[3])
-    use_clean = int(sys.argv[4])
+    use_clean = is_use_clean(dataset)
+    if dataset.startswith("tomita"):
+        gram_id = int(dataset[-1])
+        params = getattr(train_args, "args_{}_{}".format(model_type, "tomita"))()
+        data = load_pickle(get_path(getattr(DataPath, "TOMITA").PROCESSED_DATA).format(gram_id, gram_id))
+        wv_matrix = load_pickle(get_path(getattr(DataPath, "TOMITA").WV_MATRIX).format(gram_id, gram_id))
+    else:
+        params = getattr(train_args, "args_{}_{}".format(model_type, dataset))()
+        data = load_pickle(get_path(getattr(DataPath, dataset.upper()).PROCESSED_DATA))
+        wv_matrix = load_pickle(get_path(getattr(DataPath, dataset.upper()).WV_MATRIX))
 
-    params = getattr(train_args, "args_{}_{}".format(model_type, dataset))()
-    data = load_pickle(get_path(getattr(DataPath, dataset.upper()).PROCESSED_DATA))
-    wv_matrix = load_pickle(get_path(getattr(DataPath, dataset.upper()).WV_MATRIX))
     train_args.add_data_info(data, params)
     params["WV_MATRIX"] = wv_matrix
     params["device"] = "cuda:{}".format(gpu) if gpu >= 0 else "cpu"
     params["rnn_type"] = model_type
     params["use_clean"] = use_clean
 
-    model, train_acc, test_acc = train(data, params)
+    model = init_model(params)
+    model, train_acc, test_acc = train(model, data, params)
 
     # save model
-    if use_clean:
-        save_folder = "data/no_stopws/trained_models/{}/{}/".format(dataset, model_type)
-    else:
-        save_folder = getattr(getattr(TrainedModel, model_type.upper()), dataset.upper())
+    save_folder = "data/no_stopws/trained_models/{}/{}/".format(dataset, model_type)
     save_path = os.path.join(PROJECT_ROOT, save_folder, folder_timestamp())
     save_model(model, train_acc, test_acc, abspath(save_path))
     save_readme(save_path, ["{}:{}\n".format(key, params[key]) for key in params.keys() if key != "WV_MATRIX"])

@@ -6,17 +6,15 @@ from level2_abstract.read_seq import *
 from utils.constant import *
 
 
-def do_L2_abs(k):
+def do_L2_abs(data_type, model_type, k):
     # k = int(sys.argv[1])
     # k = 10
-    data_type = sys.argv[1]
-    model_type = sys.argv[2]
     alpha = 64
     total_symbols = 1000000
     partition_type = PartitionType.KM
     using_train_set = True
     data_source = "train" if using_train_set else "test"
-    l1_data_path = AbstractData.Level1.NO_STOPW.format(data_type, model_type, k, data_source+".txt")
+    l1_data_path = AbstractData.Level1.NO_STOPW.format(data_type, model_type, k, data_source + ".txt")
     output_path = AbstractData.Level2.NO_STOPW.format(data_type, model_type, k, alpha)
 
     if output_path == STANDARD_PATH:
@@ -36,8 +34,18 @@ def do_L2_abs(k):
     dffa = al.learn()
     print("{}, done.".format(current_timestamp()))
     al.output_prism(dffa, data_source)
+    return al.total_states
 
 
 if __name__ == '__main__':
-    for _k in range(2, 22, 2):
-        do_L2_abs(_k)
+    # data_type = sys.argv[1]
+    # model_type = sys.argv[2]
+    for _data_type in [DateSet.BP, DateSet.Tomita1, DateSet.Tomita2, DateSet.Tomita3,
+                       DateSet.Tomita4, DateSet.Tomita5,
+                       DateSet.Tomita6, DateSet.Tomita7, DateSet.MR, DateSet.IMDB]:
+        for _model_type in [ModelType.LSTM, ModelType.GRU]:
+            for _k in range(11, 21, 2):
+                model_size = do_L2_abs(_data_type, _model_type, _k)
+                if model_size > 100:
+                    print(">>>>>>>>>>>OVERSIZE!<<<<<<<<<<<<<")
+                    break

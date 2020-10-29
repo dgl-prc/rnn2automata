@@ -3,11 +3,20 @@ import numpy as np
 from nltk.corpus import stopwords
 from sklearn.model_selection import train_test_split
 import nltk
+from utils.constant import DateSet
 
 nltk.download('stopwords')
 stop_words = set(stopwords.words('english'))
 special_symbols = set({",", ".", ";", "!", ":", '"', "'", "(", ")", "{", "}", "--"})
 STOP_WORDS = stop_words | special_symbols
+
+
+def is_use_clean(data_type):
+    return True if data_type in [DateSet.IMDB, DateSet.MR] else False
+
+
+def is_artificial(data_set):
+    return True if data_set not in [DateSet.IMDB, DateSet.MR] else False
 
 
 def filter_stop_words(sent):

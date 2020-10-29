@@ -5,14 +5,11 @@ from sklearn.utils import shuffle
 from utils.help_func import *
 from utils.constant import *
 from data.text_utils import *
-import gensim
-
 
 def divide_mr(word_vectors):
     x, y = [], []
     save_path = get_path(DataPath.MR.PROCESSED_DATA)
     save_wv_matrix_path = get_path(DataPath.MR.WV_MATRIX)
-
     pos_path = os.path.join(get_path(DataPath.MR.RAW_DATA), "rt-polarity.pos")
     neg_path = os.path.join(get_path(DataPath.MR.RAW_DATA), "rt-polarity.neg")
 
