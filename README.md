@@ -100,7 +100,7 @@ some helper functions are organized here.
 
 Run the file ***experiments/effectiveness/pfa_predict.py*** to get the fidelity and accuracy of the learned pfa.
 
-#### Adversarial Detection
+#### Application：Detection of Adversarial Text 
 
 - use ***experiments/application/adv_detect/craft_adversaries.py*** to craft adversarial texts
 - run ***experiments/application/adv_detect/ts_detect.py*** to detect the adversarial texts.
