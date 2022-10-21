@@ -93,7 +93,7 @@ some helper functions are organized here.
 
 1. Train target models.  One can use the file ***target_models/model_training.py*** to train a model by herseself.
 2. Extract original trace. One can use the file ***ori_trace_extraction/do_ori_extract.py*** to extract the execution traces of the target model.
-3. Use the file ***level1_abstract/do_L1_abstract.py*** to convert original traces to symbolic traces.  One can.
+3. Use the file ***level1_abstract/do_L1_abstract.py*** to convert original traces to symbolic traces. 
 4. Use the file ***level2_abstract/do_L2_abstract.py*** to extract pfa according to the symbolic traces.
 
 #### Test the effectiveness
